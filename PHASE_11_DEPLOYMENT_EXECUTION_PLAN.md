@@ -78,7 +78,7 @@ A cross-check was performed between the 8 Phase 11 production documents and the 
 
 ## 3. STEP-BY-STEP DEPLOYMENT CHECKLIST (TASK 3)
 
-### STAGE 1, 2 & 3: PRODUCTION DATABASE SETUP, COMPATIBILITY & READINESS AUDIT (TIDB SERVERLESS)
+### STAGE 1, 2, 3 & 4: PRODUCTION DATABASE SETUP, COMPATIBILITY, READINESS AUDIT & MIGRATION (TIDB SERVERLESS)
 - **Website / Dashboard:** [https://tidbcloud.com](https://tidbcloud.com)
 - **Account Requirements:** Sign up using your existing GitHub account (`Cla-renc`). No credit card required.
 - **Cluster Provisioned:** TiDB Serverless v8.5.3 (AWS `eu-central-1`)
@@ -86,14 +86,18 @@ A cross-check was performed between the 8 Phase 11 production documents and the 
   - Dedicated test connection: `tidb_migration_test` pointing to `socialpilot_migration_test`.
   - Migrations tested: **28 / 28 migrations succeeded** (59 tables created: 58 application tables + 1 `migrations` tracker).
   - Explicit 64-character-compliant index names verified for `idx_snap_brand_plat_met_col` and `idx_ai_rec_brand_status_created`.
-- **Stage 3 & 3.1 Production Readiness Audit & Full Restore Status:** **PASSED, VERIFIED & GATED**
+- **Stage 3 & 3.1 Production Readiness Audit & Full Restore Status:** **PASSED & VERIFIED**
   - Dedicated production preflight command: `php artisan db:tidb-production-preflight` verified passing.
-  - Production database `socialpilot` confirmed pristine with 0 tables under TLS 1.3 (`TLS_AES_128_GCM_SHA256`).
-  - Test cluster `socialpilot_migration_test` confirmed intact (59 tables, 28 migrations).
-  - Local development database `database/database.sqlite` preserved (59 tables, 868 KB).
   - Backup & restoration tooling upgraded with native PHP PDO SQL export (`php artisan db:backup --connection=... --verify`). Full end-to-end restore into temporary schema verified with 100% table and row count parity.
   - TiDB Cloud Serverless Starter backup capabilities accurately documented: daily automatic snapshot backups with 1-day (24-hour) retention; PITR is unavailable on free Starter tier.
-  - PlanSeeder audited and confirmed idempotent (creates/updates 4 plan tiers, zero fake users, zero billing calls).
+- **Stage 4 Production Migration & Initial Seeding Status:** **COMPLETED & VERIFIED (November 16, 2026)**
+  - Preflight verified: Target connection `mysql`, target database `socialpilot`, TLS 1.3 (`TLS_AES_128_GCM_SHA256`).
+  - Production migrations executed: `php artisan migrate --force` succeeded for all 28 migrations.
+  - Production database schema verified: 59 base tables, 106 foreign keys, 296 indexes, 62 JSON columns.
+  - Initial subscription plans seeded: `php artisan db:seed --class=PlanSeeder --force` seeded 4 tiers (`free`, `starter`, `professional`, `enterprise`). Zero fake users, zero subscriptions. Duplicate slug rejected with error 1062.
+  - Operational testing verified: Unicode (`🚀`), nested JSON, transactions rollback & commit, cascading foreign-key deletion.
+  - Initial production backup verified: `storage/app/backups/backup_mysql_socialpilot_2026-11-16_12-29-21.sql` (92.92 KB, 59 tables verified).
+  - Multi-database isolation confirmed: `socialpilot` (59 tables, 4 plans, 0 users), `socialpilot_migration_test` (59 tables, 4 plans, 2 users), local `database/database.sqlite` (59 tables, 4 plans, 2 users, 868 KB preserved).
 - **Environment Variables Required:**
   ```env
   DB_CONNECTION=mysql
@@ -104,32 +108,7 @@ A cross-check was performed between the 8 Phase 11 production documents and the 
   DB_PASSWORD=your_cluster_password
   MYSQL_ATTR_SSL_CA=/etc/ssl/certs/ca-certificates.crt
   ```
-- **Controlled Production Execution Procedure (Gated - Requires Owner Approval):**
-  ```bash
-  # Step 1: Execute Production Preflight Safety Audit
-  php artisan db:tidb-production-preflight
-
-  # Step 2: Run Production Migrations (ONLY after owner approval)
-  php artisan migrate --force
-
-  # Step 3: Seed Reference Subscription Plans (ONLY after owner approval)
-  php artisan db:seed --class=PlanSeeder --force
-
-  # Step 4: Verify Initial Production Backup
-  php artisan db:backup --connection=mysql --verify
-  ```
-- **Expected Successful Output:**
-  ```text
-  === ALL PRODUCTION PREFLIGHT CHECKS PASSED ===
-  Migration table created successfully.
-  Migrating: 0001_01_01_000000_create_users_table ... Migrated
-  ...
-  Migrated: 2026_11_14_150000_create_analytics_and_ai_optimization_tables (28 migrations completed)
-  Seeding: Database\Seeders\PlanSeeder ... Seeded
-  Backup created successfully: storage/app/backups/backup_mysql_socialpilot_*.sql (59 tables)
-  ```
 - **Free-Tier Limits:** 5 GiB storage, 50 million Request Units/month free per cluster. Up to 5 free clusters per organization. Automatic daily snapshot backups included with 1-day (24-hour) retention (no PITR on free Starter tier; application-level backups handle long-term retention).
-- **Manual Owner Action:** Review Stage 3 Audit Report and provide explicit authorization to execute the production migration procedure.
 
 ---
 
@@ -353,7 +332,7 @@ A cross-check was performed between the 8 Phase 11 production documents and the 
 | **Release Android APK** | **DEPLOYED AND INDEPENDENTLY VERIFIED** | 56.8 MB APK generated at `com.socialpilot.ai`. Sideload ready. |
 | **Database Backup & Restoration** | **DEPLOYED AND INDEPENDENTLY VERIFIED** | Native PHP PDO streaming backup & full multi-table restore verified on live TiDB with 100% parity. |
 | **AI Inference Architecture** | **DEPLOYED AND INDEPENDENTLY VERIFIED** | Groq free tier + OpenRouter free models verified. Zero cost. |
-| **Production Database Readiness** | **STAGE 3.1 VERIFIED (AUDITED & GATED)** | Target `socialpilot` empty (0 tables), TLS 1.3 verified, preflight checks passed, PlanSeeder audited, restore verified. Awaiting owner approval. |
+| **Production Database Readiness** | **STAGE 4 COMPLETED AND LIVE VERIFIED** | `socialpilot` migrated (59 tables, 106 FKs, 296 indexes, 62 JSON cols), 4 subscription plans seeded, operations verified, initial backup created (92.92 KB). |
 | **Laravel Production Hosting** | **CONFIGURED BUT NOT DEPLOYED** | Configured with caching and HTTPS. Awaiting user selection of host (Docker host vs Render). |
 | **Python FastAPI Hosting** | **CONFIGURED BUT NOT DEPLOYED** | Dockerfile and token auth ready. Awaiting user deployment. |
 | **Persistent Media Storage** | **CONFIGURED BUT NOT DEPLOYED** | Local volume / S3 configuration ready. |
@@ -367,6 +346,6 @@ A cross-check was performed between the 8 Phase 11 production documents and the 
 
 To execute live deployment without spending any money:
 
-1. **Step 1 (Database Migration Gate - In Progress):** Review Stage 2 TiDB Migration Compatibility Report. Confirm authorization to run `php artisan migrate --force` and initial plan seeding on production `socialpilot`.
-2. **Step 2 (AI Inference):** Groq API free tier access verified with model `openai/gpt-oss-120b`.
-3. **Step 3 (Hosting Decision):** Select target hosting environment (e.g., self-hosted Docker Compose or Render Free Web Service) to deploy web and AI containers.
+1. **Step 1 (Production Database - COMPLETED):** Stage 4 production migration, PlanSeeder reference seeding, operational verification, and initial production backup successfully completed on `socialpilot`.
+2. **Step 2 (AI Inference - COMPLETED):** Groq API free tier access verified with model `openai/gpt-oss-120b`.
+3. **Step 3 (Hosting Decision - NEXT):** Select target hosting environment (e.g., self-hosted Docker Compose or Render Free Web Service) to deploy web and AI containers.

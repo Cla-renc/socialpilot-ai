@@ -11,7 +11,7 @@
 
 | Workload Component | Evaluated Providers | Selected Solution | Reason for Selection | Status |
 |---|---|---|---|---|
-| **Production Database** | TiDB Serverless, Render Postgres, Railway, Koyeb | **TiDB Serverless (Cloud)** | 100% MySQL 8.0 compatibility, permanent 5 GiB free tier, 50M RUs/month, zero credit card required, zero data deletion. Render deletes DB after 30 days; Railway requires paid subscription. | **CONFIGURED BUT NOT DEPLOYED** (Awaiting cluster creation by user) |
+| **Production Database** | TiDB Serverless, Render Postgres, Railway, Koyeb | **TiDB Serverless (Cloud)** | 100% MySQL 8.0 compatibility, permanent 5 GiB free tier, 50M RUs/month, zero credit card required, zero data deletion. Render deletes DB after 30 days; Railway requires paid subscription. | **COMPLETE AND LIVE VERIFIED** (Stage 4 Migrated, Seeded & Backed Up) |
 | **Media Storage** | Cloudinary, Cloudflare R2, AWS S3, Local Disk | **Cloudinary / Persistent Volume** | Cloudinary offers 25 monthly credits (25 GB storage) free without credit card. Cloudflare R2 requires a credit card during registration. | **CONFIGURED BUT NOT DEPLOYED** (Ready for cloud credentials or local volume) |
 | **AI Inference** | Groq Cloud, OpenRouter, Ollama, OpenAI, Gemini | **Groq Cloud + OpenRouter Free Tier** | `openai/gpt-oss-120b` on Groq and `meta-llama/llama-3.1-8b-instruct:free` on OpenRouter provide fast, completely free inference without subscription fees. Paid models remain disabled. | **COMPLETE AND LIVE VERIFIED** |
 | **Laravel Web & REST API** | Render, Koyeb, Self-Hosted Docker Compose | **Hardened Multi-Container Stack / Render Web** | Native PHP 8.2-FPM + Nginx container with optimized route, view, and config caching. Render provides free web service but sleeps after 15 min; Docker Compose runs 24/7 without limitations. | **CONFIGURED BUT NOT DEPLOYED** (Awaiting cloud hosting selection by user) |
@@ -24,8 +24,15 @@
 ## 2. STATUS BREAKDOWN BY ARCHITECTURAL COMPONENT
 
 ### A. Database Tier
-- **Status:** **STAGE 3.1 VERIFIED (BACKUP & FULL RESTORE COMPREHENSIVELY VALIDATED)**
-- **Details:** Full production readiness audit and comprehensive backup/restore verification completed. TiDB Serverless Starter backup capabilities documented accurately (daily automatic backups, 1-day retention, no PITR on free tier). The application's native PHP PDO streaming exporter (`db:backup`) was tested end-to-end: exported `tidb_migration_test` with populated representative data (users, brands, settings, tokens, campaigns, drafts, posts, plans), restored into isolated temporary schema `socialpilot_restore_test` on TiDB, and verified 100% row-count parity across all 59 tables, schema fidelity, Unicode/JSON preservation, foreign-key constraints, and active read/write operations. Target production database `socialpilot` remains untouched with 0 tables. Local SQLite remains preserved. Gated awaiting owner authorization.
+- **Status:** **STAGE 4 PRODUCTION DATABASE MIGRATION & SEEDING COMPLETED & VERIFIED**
+- **Details:** With explicit owner authorization, production database `socialpilot` on TiDB Serverless v8.5.3 was initialized:
+  - Strict preflight safety audit executed and 100% passed (`php artisan db:tidb-production-preflight`).
+  - Production migrations executed (`php artisan migrate --force`): all 28 migrations succeeded without warnings or errors.
+  - Production database now holds all 59 expected base tables, 106 foreign-key relationships, 296 indexes, and 62 JSON columns.
+  - Reference subscription plans seeded (`php artisan db:seed --class=PlanSeeder --force`): exactly 4 plans (`free`, `starter`, `professional`, `enterprise`). Zero fake users, zero subscriptions, zero payment calls.
+  - Operational testing verified: Unicode (`🚀`), nested JSON serialization/deserialization, transaction commit and rollback, unique constraint rejection (1062 duplicate key violation), and foreign-key cascading deletes.
+  - Initial production backup exported and verified (`php artisan db:backup --connection=mysql --verify`): `storage/app/backups/backup_mysql_socialpilot_2026-11-16_12-29-21.sql` (92.92 KB, 59 tables verified, all 4 plans represented).
+  - Database isolation confirmed: `socialpilot` (59 tables, 4 plans, 0 users), `socialpilot_migration_test` (59 tables, 4 plans, 2 users), local `database/database.sqlite` (59 tables, 4 plans, 2 users, 868 KB preserved).
 
 ### B. Media Storage Tier
 - **Status:** **CONFIGURED BUT NOT DEPLOYED**
