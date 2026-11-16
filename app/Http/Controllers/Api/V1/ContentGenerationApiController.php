@@ -133,7 +133,7 @@ class ContentGenerationApiController extends Controller
 
         if (! $strategy) {
             $strategy = [
-                'topic' => $trendData ? $trendData['title'] : ($validated['instructions'] ?: ($brand->niche ?: 'Foundational Standards')),
+                'topic' => $trendData ? $trendData['title'] : (($validated['instructions'] ?? null) ?: ($brand->niche ?: 'Foundational Standards')),
                 'objective' => $validated['objective'] ?? 'engagement',
                 'category' => $validated['category'] ?? 'educational',
                 'recommended_angle' => "Practical breakdown of core principles for {$brand->name}.",

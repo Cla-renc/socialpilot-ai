@@ -1,18 +1,35 @@
 version: '3.9'
 
+networks:
+  socialpilot-internal:
+    driver: bridge
+
+volumes:
+  mysql_test_data:
+    driver: local
+
 services:
   # ============================================================================
-  # TARGET PRODUCTION / STAGING UNIFIED CONTAINER (All-in-One Deployment Mode)
+  # SERVICE 1: DECOUPLED LARAVEL CORE & WEB SERVICE
   # ============================================================================
-  socialpilot-unified:
+  laravel-app:
     build:
       context: .
-      dockerfile: Dockerfile
-    image: socialpilot-ai:latest
-    container_name: socialpilot_unified_app
+      dockerfile: Dockerfile.laravel
+    image: socialpilot-laravel:latest
+    container_name: socialpilot_laravel_app
     restart: unless-stopped
+    networks:
+      - socialpilot-internal
     ports:
       - '8000:80'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          memory: 128M
     environment:
       APP_NAME: 'SocialPilot AI'
       APP_ENV: local
@@ -21,7 +38,7 @@ services:
       APP_URL: http://localhost:8000
       FORCE_HTTPS: 'false'
 
-      # Database Configuration (Uses isolated container MySQL or SQLite)
+      # Database Configuration (Isolated local test MySQL)
       DB_CONNECTION: mysql
       DB_HOST: mysql-test
       DB_PORT: 3306
@@ -34,14 +51,14 @@ services:
       CACHE_STORE: database
       QUEUE_CONNECTION: database
 
-      # Storage (Local disk inside container)
+      # Storage
       FILESYSTEM_DISK: local
       MEDIA_STORAGE_DISK: local
 
-      # Internal AI Engine (FastAPI runs on 127.0.0.1:8080 inside the container)
-      AI_ENGINE_URL: http://127.0.0.1:8080
+      # Decoupled Python Service Hostname (Communicates internally over Docker bridge)
+      AI_ENGINE_URL: http://python-ai-engine:8080
       AI_ENGINE_INTERNAL_TOKEN: ${AI_ENGINE_INTERNAL_TOKEN:-dev-internal-token-change-in-prod}
-      TREND_ENGINE_URL: http://127.0.0.1:8080
+      TREND_ENGINE_URL: http://python-ai-engine:8080
       TREND_ENGINE_INTERNAL_TOKEN: ${AI_ENGINE_INTERNAL_TOKEN:-dev-internal-token-change-in-prod}
 
       # Internal Ops Cycle Authentication
@@ -50,14 +67,55 @@ services:
     depends_on:
       mysql-test:
         condition: service_healthy
+      python-ai-engine:
+        condition: service_healthy
 
   # ============================================================================
-  # ISOLATED LOCAL TEST DATABASE (Never touches Production TiDB)
+  # SERVICE 2: DECOUPLED PYTHON / FASTAPI AI ENGINE (Internal Network Only)
+  # ============================================================================
+  python-ai-engine:
+    build:
+      context: ./ai_engine
+      dockerfile: Dockerfile
+    image: socialpilot-ai-engine:latest
+    container_name: socialpilot_python_ai
+    restart: unless-stopped
+    networks:
+      - socialpilot-internal
+    # NOTE: Port 8080 is NOT published to host interface. Inaccessible publicly.
+    expose:
+      - '8080'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          memory: 64M
+    environment:
+      AI_ENGINE_INTERNAL_TOKEN: ${AI_ENGINE_INTERNAL_TOKEN:-dev-internal-token-change-in-prod}
+      TREND_ENGINE_INTERNAL_TOKEN: ${AI_ENGINE_INTERNAL_TOKEN:-dev-internal-token-change-in-prod}
+      TREND_ENABLE_OLLAMA_ANALYSIS: 'false'
+      NEWSAPI_API_KEY: ${NEWSAPI_API_KEY:-}
+      REDDIT_CLIENT_ID: ${REDDIT_CLIENT_ID:-}
+      REDDIT_CLIENT_SECRET: ${REDDIT_CLIENT_SECRET:-}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+      GOOGLE_TRENDS_API_KEY: ${GOOGLE_TRENDS_API_KEY:-}
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://127.0.0.1:8080/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # SERVICE 3: ISOLATED LOCAL TEST DATABASE (Never touches Production TiDB)
   # ============================================================================
   mysql-test:
     image: mysql:8.0
     container_name: socialpilot_mysql_test
     restart: unless-stopped
+    networks:
+      - socialpilot-internal
     environment:
       MYSQL_ROOT_PASSWORD: root_secret_pass
       MYSQL_DATABASE: socialpilot_local
@@ -67,12 +125,60 @@ services:
       - '33066:3306'
     volumes:
       - mysql_test_data:/var/lib/mysql
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     healthcheck:
       test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-proot_secret_pass']
       interval: 5s
       timeout: 5s
       retries: 10
 
-volumes:
-  mysql_test_data:
-    driver: local
+  # ============================================================================
+  # PRESERVED REFERENCE: UNIFIED ALL-IN-ONE CONTAINER (Profile: unified)
+  # ============================================================================
+  socialpilot-unified:
+    profiles:
+      - unified
+    build:
+      context: .
+      dockerfile: Dockerfile.unified
+    image: socialpilot-unified:latest
+    container_name: socialpilot_unified_app
+    restart: unless-stopped
+    networks:
+      - socialpilot-internal
+    ports:
+      - '8001:80'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    environment:
+      APP_NAME: 'SocialPilot AI (Unified)'
+      APP_ENV: local
+      APP_DEBUG: 'false'
+      APP_KEY: ${APP_KEY:-base64:XG8d2L5zN4m1Y9qK8vP3wE2rT1yU0iO9pA8sD7fG6hJ=}
+      APP_URL: http://localhost:8001
+      FORCE_HTTPS: 'false'
+      DB_CONNECTION: mysql
+      DB_HOST: mysql-test
+      DB_PORT: 3306
+      DB_DATABASE: socialpilot_local
+      DB_USERNAME: socialpilot_user
+      DB_PASSWORD: socialpilot_secret
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      FILESYSTEM_DISK: local
+      MEDIA_STORAGE_DISK: local
+      AI_ENGINE_URL: http://127.0.0.1:8080
+      AI_ENGINE_INTERNAL_TOKEN: ${AI_ENGINE_INTERNAL_TOKEN:-dev-internal-token-change-in-prod}
+      TREND_ENGINE_URL: http://127.0.0.1:8080
+      TREND_ENGINE_INTERNAL_TOKEN: ${AI_ENGINE_INTERNAL_TOKEN:-dev-internal-token-change-in-prod}
+      INTERNAL_CRON_SECRET: ${INTERNAL_CRON_SECRET:-local-ops-cron-secret-32-chars}
+    depends_on:
+      mysql-test:
+        condition: service_healthy

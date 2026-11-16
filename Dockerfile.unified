@@ -1,0 +1,107 @@
+# ==============================================================================
+# STAGE 1: FRONTEND ASSET COMPILATION (Node.js)
+# ==============================================================================
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --prefer-offline --no-audit
+
+COPY resources/ ./resources/
+COPY vite.config.js ./
+COPY tailwind.config.js* ./
+COPY postcss.config.js* ./
+COPY public/ ./public/
+
+RUN npm run build
+
+# ==============================================================================
+# STAGE 2: PRODUCTION RUNTIME (PHP 8.2 + Python 3.12 + Nginx + Supervisor)
+# ==============================================================================
+FROM php:8.2-fpm-bookworm AS production
+
+LABEL maintainer="Antigravity AI Engineering"
+LABEL project="SocialPilot AI"
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    COMPOSER_ALLOW_SUPERUSER=1
+
+# 1. Install System Dependencies (Nginx, Supervisor, Python 3, System Libs)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nginx \
+    supervisor \
+    python3 \
+    python3-venv \
+    python3-pip \
+    curl \
+    ca-certificates \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libzip-dev \
+    libicu-dev \
+    libxml2-dev \
+    sqlite3 \
+    libsqlite3-dev \
+    default-mysql-client \
+    git \
+    unzip \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) \
+        pdo_mysql \
+        pdo_sqlite \
+        bcmath \
+        gd \
+        intl \
+        opcache \
+        zip \
+        pcntl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# 2. Install Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# 3. Setup Python Virtual Environment for FastAPI AI Engine
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY ai_engine/requirements.txt /tmp/ai_requirements.txt
+RUN /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
+    && /opt/venv/bin/pip install --no-cache-dir -r /tmp/ai_requirements.txt \
+    && rm -f /tmp/ai_requirements.txt
+
+# 4. Set Application Working Directory
+WORKDIR /var/www/html
+
+# 5. Copy Application Source Code (excluding files in .dockerignore)
+COPY . /var/www/html
+
+# 6. Copy Compiled Vite Frontend Assets from Stage 1
+COPY --from=frontend-builder /app/public/build /var/www/html/public/build
+
+# 7. Install PHP Production Dependencies
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+
+# 8. Configure Nginx, PHP, Supervisor, and Entrypoint
+COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY docker/php/php.ini /usr/local/etc/php/conf.d/99-custom.ini
+COPY docker/php/php-fpm.d/zz-docker.conf /usr/local/etc/php-fpm.d/zz-docker.conf
+COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
+    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+
+# 9. Service Networking & Healthcheck
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD curl -f http://127.0.0.1/up || exit 1
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
