@@ -148,4 +148,8 @@ return [
         'generation_timeout' => env('MEDIA_GENERATION_TIMEOUT', 120),
     ],
 
+    'ops' => [
+        'cron_secret' => env('INTERNAL_CRON_SECRET'),
+    ],
+
 ];

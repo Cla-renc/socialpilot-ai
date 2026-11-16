@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\InternalOpsController;
 use App\Http\Controllers\Api\V1\AiGenerationController;
 use App\Http\Controllers\Api\V1\AnalyticsController;
 use App\Http\Controllers\Api\V1\AuthController;
@@ -33,7 +34,10 @@ use App\Http\Controllers\Api\V1\SchedulingSettingsApiController;
 use App\Http\Controllers\Api\V1\SubscriptionController;
 use Illuminate\Support\Facades\Route;
 
+Route::post('/internal/ops/cycle', [InternalOpsController::class, 'cycle']);
+
 Route::prefix('v1')->group(function () {
+    Route::post('/internal/ops/cycle', [InternalOpsController::class, 'cycle']);
     Route::post('/auth/register', [AuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);
     Route::post('/login', [AuthController::class, 'login']);

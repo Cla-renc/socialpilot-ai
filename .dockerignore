@@ -1,0 +1,40 @@
+# Version Control
+.git
+.github
+.gitignore
+
+# Environment & Secrets (NEVER bake into image layers)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+Certificates/*.pem
+
+# Database files & backups (NEVER copy into image)
+database/*.sqlite*
+storage/app/backups/*
+storage/logs/*.log
+*.sql
+
+# Dependencies (built in container stages)
+node_modules/
+vendor/
+.venv/
+__pycache__/
+*.py[cod]
+
+# Client Mobile Application
+mobile/
+
+# Caches & Test Artifacts
+.phpunit.cache
+.pytest_cache
+.dart_tool/
+tests/
+ai_engine/tests/
+
+# System & OS
+.DS_Store
+Thumbs.db
