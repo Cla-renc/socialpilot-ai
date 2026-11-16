@@ -13,7 +13,7 @@
 |---|---|---|---|---|
 | **Production Database** | TiDB Serverless, Render Postgres, Railway, Koyeb | **TiDB Serverless (Cloud)** | 100% MySQL 8.0 compatibility, permanent 5 GiB free tier, 50M RUs/month, zero credit card required, zero data deletion. Render deletes DB after 30 days; Railway requires paid subscription. | **CONFIGURED BUT NOT DEPLOYED** (Awaiting cluster creation by user) |
 | **Media Storage** | Cloudinary, Cloudflare R2, AWS S3, Local Disk | **Cloudinary / Persistent Volume** | Cloudinary offers 25 monthly credits (25 GB storage) free without credit card. Cloudflare R2 requires a credit card during registration. | **CONFIGURED BUT NOT DEPLOYED** (Ready for cloud credentials or local volume) |
-| **AI Inference** | Groq Cloud, OpenRouter, Ollama, OpenAI, Gemini | **Groq Cloud + OpenRouter Free Tier** | `llama-3.1-8b-instant` on Groq and `meta-llama/llama-3.1-8b-instruct:free` on OpenRouter provide fast, completely free inference without subscription fees. Paid models remain disabled. | **COMPLETE AND LIVE VERIFIED** |
+| **AI Inference** | Groq Cloud, OpenRouter, Ollama, OpenAI, Gemini | **Groq Cloud + OpenRouter Free Tier** | `llama-3.3-70b-versatile` on Groq and `meta-llama/llama-3.1-8b-instruct:free` on OpenRouter provide fast, completely free inference without subscription fees. Paid models remain disabled. | **COMPLETE AND LIVE VERIFIED** |
 | **Laravel Web & REST API** | Render, Koyeb, Self-Hosted Docker Compose | **Hardened Multi-Container Stack / Render Web** | Native PHP 8.2-FPM + Nginx container with optimized route, view, and config caching. Render provides free web service but sleeps after 15 min; Docker Compose runs 24/7 without limitations. | **CONFIGURED BUT NOT DEPLOYED** (Awaiting cloud hosting selection by user) |
 | **Python AI Engine** | Render, Koyeb, Self-Hosted Docker Compose | **Uvicorn ASGI Container** | Python FastAPI engine with internal bearer token verification and health check probes. | **CONFIGURED BUT NOT DEPLOYED** |
 | **Queue Workers & Scheduler** | Render, Railway, Systemd / Supervisord | **Supervisord / Systemd Runner** | Render and Koyeb **strictly exclude background workers from their free tiers** ($7/mo minimum on Render). Self-hosted Supervisord manages 24/7 queue processing and schedule cron at zero cost. | **CONFIGURED BUT NOT DEPLOYED** |
@@ -33,7 +33,7 @@
 
 ### C. AI Inference Tier
 - **Status:** **COMPLETE AND LIVE VERIFIED**
-- **Details:** Groq Cloud free tier (`llama-3.1-8b-instant`), OpenRouter free models (`meta-llama/llama-3.1-8b-instruct:free`), and Ollama local development are fully configured and verified through automated tests. Paid OpenAI and Gemini APIs remain completely optional and disabled.
+- **Details:** Groq Cloud free tier (`llama-3.3-70b-versatile`), OpenRouter free models (`meta-llama/llama-3.1-8b-instruct:free`), and Ollama local development are fully configured and verified through automated tests. Paid OpenAI and Gemini APIs remain completely optional and disabled.
 
 ### D. Laravel Web & API Tier
 - **Status:** **CONFIGURED BUT NOT DEPLOYED**

@@ -18,7 +18,7 @@ class AIProviderManager:
         self.openrouter_key = os.getenv("OPENROUTER_API_KEY", "")
         self.groq_key = os.getenv("GROQ_API_KEY", "")
         self.groq_base_url = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
-        self.groq_model = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+        self.groq_model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
     def check_availability(self, provider: str) -> dict[str, Any]:
         p = provider.lower().strip()

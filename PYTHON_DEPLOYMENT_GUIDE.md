@@ -77,12 +77,12 @@ The engine is engineered with a strict cost-prevention architecture:
 
 ### 1. Groq Cloud (Free Tier)
 - **Status:** **Active / Preferred Cloud Provider**
-- **Supported Free Model:** `llama-3.1-8b-instant`
+- **Supported Free Model:** `llama-3.3-70b-versatile`
 - **Configuration:**
   ```env
   AI_PROVIDER=groq
   GROQ_API_KEY=your_free_groq_api_key
-  GROQ_MODEL=llama-3.1-8b-instant
+  GROQ_MODEL=llama-3.3-70b-versatile
   GROQ_BASE_URL=https://api.groq.com/openai/v1
   ```
 - Fast inference (300+ tokens/sec) within free tier rate limits.
