@@ -86,12 +86,13 @@ A cross-check was performed between the 8 Phase 11 production documents and the 
   - Dedicated test connection: `tidb_migration_test` pointing to `socialpilot_migration_test`.
   - Migrations tested: **28 / 28 migrations succeeded** (59 tables created: 58 application tables + 1 `migrations` tracker).
   - Explicit 64-character-compliant index names verified for `idx_snap_brand_plat_met_col` and `idx_ai_rec_brand_status_created`.
-- **Stage 3 Production Readiness Audit Status:** **AUDITED, VERIFIED & GATED**
+- **Stage 3 & 3.1 Production Readiness Audit & Full Restore Status:** **PASSED, VERIFIED & GATED**
   - Dedicated production preflight command: `php artisan db:tidb-production-preflight` verified passing.
   - Production database `socialpilot` confirmed pristine with 0 tables under TLS 1.3 (`TLS_AES_128_GCM_SHA256`).
   - Test cluster `socialpilot_migration_test` confirmed intact (59 tables, 28 migrations).
   - Local development database `database/database.sqlite` preserved (59 tables, 868 KB).
-  - Backup & restoration tooling upgraded with native PHP PDO SQL export (`php artisan db:backup --connection=... --verify`).
+  - Backup & restoration tooling upgraded with native PHP PDO SQL export (`php artisan db:backup --connection=... --verify`). Full end-to-end restore into temporary schema verified with 100% table and row count parity.
+  - TiDB Cloud Serverless Starter backup capabilities accurately documented: daily automatic snapshot backups with 1-day (24-hour) retention; PITR is unavailable on free Starter tier.
   - PlanSeeder audited and confirmed idempotent (creates/updates 4 plan tiers, zero fake users, zero billing calls).
 - **Environment Variables Required:**
   ```env
@@ -127,7 +128,7 @@ A cross-check was performed between the 8 Phase 11 production documents and the 
   Seeding: Database\Seeders\PlanSeeder ... Seeded
   Backup created successfully: storage/app/backups/backup_mysql_socialpilot_*.sql (59 tables)
   ```
-- **Free-Tier Limits:** 5 GiB storage, 50 million Request Units/month free per cluster. Up to 5 free clusters per organization. Automatic daily PITR backups included free.
+- **Free-Tier Limits:** 5 GiB storage, 50 million Request Units/month free per cluster. Up to 5 free clusters per organization. Automatic daily snapshot backups included with 1-day (24-hour) retention (no PITR on free Starter tier; application-level backups handle long-term retention).
 - **Manual Owner Action:** Review Stage 3 Audit Report and provide explicit authorization to execute the production migration procedure.
 
 ---
@@ -350,9 +351,9 @@ A cross-check was performed between the 8 Phase 11 production documents and the 
 | **Automated Test Suites (413 tests)** | **DEPLOYED AND INDEPENDENTLY VERIFIED** | 100% pass rate (Laravel: 267, Python: 87, Flutter: 59). |
 | **Git Repository (Main Branch)** | **DEPLOYED AND INDEPENDENTLY VERIFIED** | Published to private GitHub repo (`Cla-renc/socialpilot-ai`). Zero secrets tracked. |
 | **Release Android APK** | **DEPLOYED AND INDEPENDENTLY VERIFIED** | 56.8 MB APK generated at `com.socialpilot.ai`. Sideload ready. |
-| **Database Backup & Restoration** | **DEPLOYED AND INDEPENDENTLY VERIFIED** | Native PHP PDO & SQLite backup tested; cross-platform SQL export verified. |
+| **Database Backup & Restoration** | **DEPLOYED AND INDEPENDENTLY VERIFIED** | Native PHP PDO streaming backup & full multi-table restore verified on live TiDB with 100% parity. |
 | **AI Inference Architecture** | **DEPLOYED AND INDEPENDENTLY VERIFIED** | Groq free tier + OpenRouter free models verified. Zero cost. |
-| **Production Database Readiness** | **STAGE 3 READY (AUDITED & GATED)** | Target `socialpilot` empty (0 tables), TLS 1.3 verified, preflight checks passed, PlanSeeder audited. Awaiting owner approval. |
+| **Production Database Readiness** | **STAGE 3.1 VERIFIED (AUDITED & GATED)** | Target `socialpilot` empty (0 tables), TLS 1.3 verified, preflight checks passed, PlanSeeder audited, restore verified. Awaiting owner approval. |
 | **Laravel Production Hosting** | **CONFIGURED BUT NOT DEPLOYED** | Configured with caching and HTTPS. Awaiting user selection of host (Docker host vs Render). |
 | **Python FastAPI Hosting** | **CONFIGURED BUT NOT DEPLOYED** | Dockerfile and token auth ready. Awaiting user deployment. |
 | **Persistent Media Storage** | **CONFIGURED BUT NOT DEPLOYED** | Local volume / S3 configuration ready. |

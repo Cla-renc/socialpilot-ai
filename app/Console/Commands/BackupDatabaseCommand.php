@@ -129,6 +129,7 @@ class BackupDatabaseCommand extends Command
 
             $this->info("Connecting to [{$connection}] ({$host}:{$port}/{$database}) via PDO...");
 
+            $handle = null;
             try {
                 $pdo = DB::connection($connection)->getPdo();
 
@@ -144,7 +145,8 @@ class BackupDatabaseCommand extends Command
                 fwrite($handle, "-- Generated: {$timestamp}\n");
                 fwrite($handle, "-- --------------------------------------------------------\n\n");
                 fwrite($handle, "SET FOREIGN_KEY_CHECKS=0;\n");
-                fwrite($handle, "SET NAMES utf8mb4;\n\n");
+                fwrite($handle, "SET NAMES utf8mb4;\n");
+                fwrite($handle, "SET time_zone = '+00:00';\n\n");
 
                 $tablesStmt = $pdo->query("SHOW FULL TABLES WHERE Table_Type = 'BASE TABLE'");
                 $tables = [];
@@ -159,11 +161,12 @@ class BackupDatabaseCommand extends Command
                     $createRow = $createStmt->fetch(\PDO::FETCH_ASSOC);
                     $createSql = $createRow['Create Table'] ?? '';
 
+                    fwrite($handle, "-- --------------------------------------------------------\n");
                     fwrite($handle, "-- Table structure for `{$table}`\n");
                     fwrite($handle, "DROP TABLE IF EXISTS `{$table}`;\n");
                     fwrite($handle, "{$createSql};\n\n");
 
-                    // Export Data
+                    // Export Data with streaming fetch
                     $countStmt = $pdo->query("SELECT COUNT(*) FROM `{$table}`");
                     $totalRows = (int) $countStmt->fetchColumn();
 
@@ -174,7 +177,10 @@ class BackupDatabaseCommand extends Command
                             $cols = array_map(fn ($c) => "`{$c}`", array_keys($row));
                             $vals = array_map(function ($v) use ($pdo) {
                                 if (is_null($v)) return 'NULL';
-                                return $pdo->quote($v);
+                                if (is_int($v) || (is_numeric($v) && !str_starts_with($v, '0') && !str_contains($v, 'e') && !str_contains($v, 'E'))) {
+                                    return $v;
+                                }
+                                return $pdo->quote((string) $v);
                             }, array_values($row));
                             fwrite($handle, "INSERT INTO `{$table}` (" . implode(', ', $cols) . ") VALUES (" . implode(', ', $vals) . ");\n");
                         }
@@ -184,6 +190,7 @@ class BackupDatabaseCommand extends Command
 
                 fwrite($handle, "SET FOREIGN_KEY_CHECKS=1;\n");
                 fclose($handle);
+                $handle = null;
 
                 $sizeKb = round(File::size($targetFile) / 1024, 2);
                 $this->info("Backup created successfully: {$targetFile} ({$sizeKb} KB, " . count($tables) . " tables)");
@@ -216,6 +223,12 @@ class BackupDatabaseCommand extends Command
 
                 return self::SUCCESS;
             } catch (\Throwable $e) {
+                if (is_resource($handle)) {
+                    fclose($handle);
+                }
+                if (File::exists($targetFile)) {
+                    File::delete($targetFile);
+                }
                 $this->error("MySQL/TiDB backup failed: " . $e->getMessage());
                 return self::FAILURE;
             }

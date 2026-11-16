@@ -24,8 +24,8 @@
 ## 2. STATUS BREAKDOWN BY ARCHITECTURAL COMPONENT
 
 ### A. Database Tier
-- **Status:** **STAGE 3 READY (PRODUCTION READINESS AUDITED & GATED)**
-- **Details:** Full production readiness audit completed. Target production database `socialpilot` connection verified on TiDB Serverless v8.5.3 under TLS 1.3 (`TLS_AES_128_GCM_SHA256`). Database is pristine with 0 tables. Test database `socialpilot_migration_test` verified with 59 tables and 28 migrations. Local SQLite development database preserved with 59 tables (868 KB). Upgraded `db:backup` command with native PHP PDO SQL export verified. PlanSeeder audited and confirmed idempotent (4 plans). Production preflight command (`php artisan db:tidb-production-preflight`) implemented and passing. Gated awaiting owner authorization.
+- **Status:** **STAGE 3.1 VERIFIED (BACKUP & FULL RESTORE COMPREHENSIVELY VALIDATED)**
+- **Details:** Full production readiness audit and comprehensive backup/restore verification completed. TiDB Serverless Starter backup capabilities documented accurately (daily automatic backups, 1-day retention, no PITR on free tier). The application's native PHP PDO streaming exporter (`db:backup`) was tested end-to-end: exported `tidb_migration_test` with populated representative data (users, brands, settings, tokens, campaigns, drafts, posts, plans), restored into isolated temporary schema `socialpilot_restore_test` on TiDB, and verified 100% row-count parity across all 59 tables, schema fidelity, Unicode/JSON preservation, foreign-key constraints, and active read/write operations. Target production database `socialpilot` remains untouched with 0 tables. Local SQLite remains preserved. Gated awaiting owner authorization.
 
 ### B. Media Storage Tier
 - **Status:** **CONFIGURED BUT NOT DEPLOYED**

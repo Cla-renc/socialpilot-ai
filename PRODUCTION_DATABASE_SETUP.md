@@ -123,36 +123,39 @@ SocialPilot AI enforces strict database isolation across all environments:
 
 ---
 
-## 6. PRODUCTION BACKUP & RECOVERY PROCEDURES (STAGE 3 VERIFIED)
+## 6. PRODUCTION BACKUP & RECOVERY PROCEDURES (STAGE 3.1 VERIFIED)
 
-### Automated Cloud Provider Snapshots (Zero-Cost)
-TiDB Cloud Serverless provides built-in automated daily backups and Point-In-Time-Recovery (PITR) with 7-day retention for free without additional configuration or credentials exposure.
+SocialPilot AI implements a dual backup strategy clearly separating provider-managed snapshots from application-level logical dumps:
 
-### Native PHP PDO & Artisan Backup Tooling
-SocialPilot AI includes the verified `php artisan db:backup` command supporting both local SQLite and remote MySQL/TiDB connections via pure PHP PDO without requiring external CLI utilities (`mysqldump`):
+### 1. Provider-Managed Automatic Backups (TiDB Cloud Serverless Starter)
+- **Backup Frequency:** Automatic daily snapshot backups taken by TiDB Cloud infrastructure.
+- **Retention Period:** Exactly **1 day (24 hours)** on the free Starter tier.
+- **Snapshot Restore:** Supports restoring the cluster to the daily snapshot state.
+- **PITR Limitation:** Point-in-Time Recovery (PITR) is **UNAVAILABLE** on free Serverless Starter instances (PITR is a paid feature requiring TiDB Cloud Essential or a configured spending limit > $0).
+
+### 2. Application-Level Native SQL Export (`php artisan db:backup`)
+Because the free Starter tier retains backups for only 24 hours without PITR, SocialPilot AI provides an independent, zero-cost logical backup exporter built directly into the application:
 ```bash
-# Backup active connection (SQLite or MySQL/TiDB) with non-destructive verification
+# Backup active database connection (SQLite or MySQL/TiDB) with integrity verification
 php artisan db:backup --verify --keep=7
 
 # Explicitly backup a specific connection (e.g. test cluster or production)
 php artisan db:backup --connection=tidb_migration_test --verify
 php artisan db:backup --connection=mysql --verify
 ```
-- **Security:** Credentials remain strictly in memory and are never printed or written to file headers.
-- **Portability:** Works cross-platform on Linux, Docker, macOS, and Windows.
-- **Integrity Verification:** Validates `CREATE TABLE` and row counts against live database schema.
-- **Location:** Saved to `storage/app/backups/backup_{connection}_{database}_{timestamp}.sql`.
+- **Retention:** User-configurable long-term retention (e.g. `--keep=7` or `--keep=30`), pruned automatically.
+- **Security:** In-memory credential protection; passwords and connection strings are never written to file headers.
+- **Cross-Platform:** Pure PHP PDO implementation requiring zero external CLI dependencies (`mysqldump` not required).
+- **Consistency & Safety:** Uses transactional read snapshots, streaming fetches for low memory usage, and wraps statements in `SET FOREIGN_KEY_CHECKS=0/1` and UTF-8 multi-byte character set preservation (`utf8mb4`).
+- **Storage:** Persisted locally or mounted volume at `storage/app/backups/backup_{connection}_{database}_{timestamp}.sql`.
 
-### Restoration Test Procedure (Sandbox Verification)
-To test restoring a backup without impacting the live database:
-1. Create or designate an isolated restore database: `socialpilot_restore_test`.
-2. Restore the SQL export into the sandbox database using MySQL CLI or Laravel DB connection:
-   ```bash
-   mysql -h ${DB_HOST} -P ${DB_PORT} -u ${DB_USERNAME} -p --ssl-ca=${MYSQL_ATTR_SSL_CA} socialpilot_restore_test < storage/app/backups/backup_tidb_*.sql
-   ```
-3. Run table count and parity assertions to verify complete restoration. Local SQLite and production `socialpilot` are never touched.
-   ```bash
-   gunzip < /backups/socialpilot_2026-11-16.sql.gz | mysql -h ${DB_HOST} -P ${DB_PORT} -u ${DB_USERNAME} -p${DB_PASSWORD} socialpilot_restore_test
-   ```
-3. Run verification check to confirm table count equals 59 tables.
-4. Drop the test database: `DROP DATABASE socialpilot_restore_test;`
+### 3. Restoration Capability (Live Verified on TiDB Serverless)
+Restoration of native SQL backups has been tested and verified against the live TiDB Serverless cluster:
+1. An isolated temporary schema (`socialpilot_restore_test`) is created without impacting production.
+2. The SQL export is executed over TLS 1.3 using multi-statement execution.
+3. **Verified Results:**
+   - 59 / 59 table schemas restored (100%).
+   - 100% row-count parity across all tables.
+   - Complete preservation of foreign keys, unique indexes, timestamps, and nested JSON payloads.
+   - Active read and write operations confirmed on restored schema.
+   - Temporary verification database safely dropped after test completion. Local SQLite and production `socialpilot` are never touched.
