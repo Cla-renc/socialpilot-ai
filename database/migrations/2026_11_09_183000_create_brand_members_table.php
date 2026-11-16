@@ -1,0 +1,31 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('brand_members', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('brand_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->string('role')->default('editor');
+            $table->json('permissions')->nullable();
+            $table->string('status')->default('active');
+            $table->foreignId('invited_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('joined_at')->nullable();
+            $table->timestamps();
+
+            $table->unique(['brand_id', 'user_id']);
+            $table->index(['brand_id', 'role']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('brand_members');
+    }
+};
