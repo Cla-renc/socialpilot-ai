@@ -6,7 +6,9 @@
 # Environment & Secrets (NEVER bake into image layers)
 .env
 .env.*
+.env.docker
 !.env.example
+!.env.docker.example
 *.pem
 *.key
 *.cert
