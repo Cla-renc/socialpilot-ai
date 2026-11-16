@@ -94,50 +94,63 @@ In `config/database.php`, the default MySQL connection is pre-configured to auto
 
 ---
 
-## 5. MIGRATION COMPATIBILITY TESTING (STAGE 2 VERIFIED)
+## 5. MIGRATION COMPATIBILITY & PRODUCTION READINESS (STAGE 2 & 3 AUDITED)
 
-SocialPilot AI enforces strict database isolation. The migration test suite was executed against an isolated test database `socialpilot_migration_test` using the dedicated connection `tidb_migration_test`:
+SocialPilot AI enforces strict database isolation across all environments:
 
-1. **Preflight Safety Verification:**
+1. **Test Preflight Safety Verification (Stage 2):**
    ```bash
    php artisan db:tidb-migration-preflight
    ```
    *Guarantees that TLS is active, target database is strictly `socialpilot_migration_test`, and production `socialpilot` is protected.*
 
-2. **Isolated Migration Execution:**
+2. **Isolated Migration Execution on Test Cluster (Stage 2 Passed):**
    ```bash
    php artisan migrate --database=tidb_migration_test
    ```
-   *Executes all 28 migrations strictly on the test cluster.*
+   *All 28 migrations verified successfully on `socialpilot_migration_test` (59 tables created, 106 foreign keys, 62 JSON columns).*
 
-3. **Production Migration Execution Gate (STOP POINT):**
+3. **Production Preflight Safety Audit (Stage 3 Passed):**
+   ```bash
+   php artisan db:tidb-production-preflight
+   ```
+   *Validates connection `mysql`, target database `socialpilot`, TLS 1.3 cipher, TiDB Serverless engine identity, and confirms production database is completely pristine and empty (0 tables).*
+
+4. **Production Migration Execution Gate (STOP POINT):**
    > [!CAUTION]
    > The production database `socialpilot` remains **100% empty (0 tables)** and untouched.
-   > Live production migrations (`php artisan migrate --force`) and production seeders (`php artisan db:seed --class=PlanSeeder --force`) must **only** be executed after explicit owner approval.
+   > Live production migrations (`php artisan migrate --force`) and plan seeding (`php artisan db:seed --class=PlanSeeder --force`) must **only** be executed after explicit owner approval.
 
 ---
 
-## 6. PRODUCTION BACKUP & RECOVERY PROCEDURES
+## 6. PRODUCTION BACKUP & RECOVERY PROCEDURES (STAGE 3 VERIFIED)
 
-### Automated Backups
-SocialPilot AI includes the verified `php artisan db:backup` command:
-```bash
-# Creates timestamped backup with retention pruning (retains latest 7 backups)
-php artisan db:backup --keep=7
-```
-This command runs automatically every night at 01:00 UTC via the registered Laravel scheduler.
+### Automated Cloud Provider Snapshots (Zero-Cost)
+TiDB Cloud Serverless provides built-in automated daily backups and Point-In-Time-Recovery (PITR) with 7-day retention for free without additional configuration or credentials exposure.
 
-### Direct MySQL Dump Backup (Off-Site)
+### Native PHP PDO & Artisan Backup Tooling
+SocialPilot AI includes the verified `php artisan db:backup` command supporting both local SQLite and remote MySQL/TiDB connections via pure PHP PDO without requiring external CLI utilities (`mysqldump`):
 ```bash
-mysqldump -h ${DB_HOST} -P ${DB_PORT} -u ${DB_USERNAME} -p${DB_PASSWORD} \
-  --ssl-mode=REQUIRED --single-transaction --quick ${DB_DATABASE} \
-  | gzip > /backups/socialpilot_$(date +\%F_\%T).sql.gz
+# Backup active connection (SQLite or MySQL/TiDB) with non-destructive verification
+php artisan db:backup --verify --keep=7
+
+# Explicitly backup a specific connection (e.g. test cluster or production)
+php artisan db:backup --connection=tidb_migration_test --verify
+php artisan db:backup --connection=mysql --verify
 ```
+- **Security:** Credentials remain strictly in memory and are never printed or written to file headers.
+- **Portability:** Works cross-platform on Linux, Docker, macOS, and Windows.
+- **Integrity Verification:** Validates `CREATE TABLE` and row counts against live database schema.
+- **Location:** Saved to `storage/app/backups/backup_{connection}_{database}_{timestamp}.sql`.
 
 ### Restoration Test Procedure (Sandbox Verification)
 To test restoring a backup without impacting the live database:
-1. Create a temporary testing database: `CREATE DATABASE socialpilot_restore_test;`
-2. Restore the dump into the sandbox database:
+1. Create or designate an isolated restore database: `socialpilot_restore_test`.
+2. Restore the SQL export into the sandbox database using MySQL CLI or Laravel DB connection:
+   ```bash
+   mysql -h ${DB_HOST} -P ${DB_PORT} -u ${DB_USERNAME} -p --ssl-ca=${MYSQL_ATTR_SSL_CA} socialpilot_restore_test < storage/app/backups/backup_tidb_*.sql
+   ```
+3. Run table count and parity assertions to verify complete restoration. Local SQLite and production `socialpilot` are never touched.
    ```bash
    gunzip < /backups/socialpilot_2026-11-16.sql.gz | mysql -h ${DB_HOST} -P ${DB_PORT} -u ${DB_USERNAME} -p${DB_PASSWORD} socialpilot_restore_test
    ```

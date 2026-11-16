@@ -34,6 +34,15 @@ class TiDbVerificationTest extends TestCase
         $this->assertStringContainsString("Target connection must strictly be 'tidb_migration_test'", $output);
     }
 
+    public function test_1c_tidb_production_preflight_blocks_invalid_connection(): void
+    {
+        $exitCode = Artisan::call('db:tidb-production-preflight', ['--connection' => 'sqlite']);
+        $output = Artisan::output();
+
+        $this->assertEquals(1, $exitCode);
+        $this->assertStringContainsString("Target production connection must strictly be 'mysql'", $output);
+    }
+
     public function test_2_mysql_configuration_supports_tls_and_tidb_options(): void
     {
         $mysqlConfig = config('database.connections.mysql');
