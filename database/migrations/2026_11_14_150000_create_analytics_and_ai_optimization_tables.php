@@ -36,7 +36,7 @@ return new class extends Migration
                 ['social_account_id', 'metric_name', 'reporting_period', 'period_start'],
                 'uniq_snap_acc_metric_per'
             );
-            $table->index(['brand_id', 'platform', 'metric_name', 'collected_at']);
+            $table->index(['brand_id', 'platform', 'metric_name', 'collected_at'], 'idx_snap_brand_plat_met_col');
         });
 
         // 2. post_analytics: stores performance information for individual published posts
@@ -152,7 +152,7 @@ return new class extends Migration
             $table->string('priority', 32)->default('normal');
             $table->timestamps();
 
-            $table->index(['brand_id', 'recommendation_status', 'created_at']);
+            $table->index(['brand_id', 'recommendation_status', 'created_at'], 'idx_ai_rec_brand_status_created');
         });
     }
 

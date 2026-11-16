@@ -24,8 +24,8 @@
 ## 2. STATUS BREAKDOWN BY ARCHITECTURAL COMPONENT
 
 ### A. Database Tier
-- **Status:** **CONFIGURED BUT NOT DEPLOYED**
-- **Details:** The application is 100% MySQL 8.0 compatible across all 27 migrations, 46 foreign keys, and 22 JSON columns. The safe migration procedure, connection variables, and non-destructive restoration tests have been verified. Connecting to a live cloud cluster requires the user to create a free TiDB Serverless cluster.
+- **Status:** **STAGE 2 VERIFIED (MIGRATIONS PASSED ON TIDB TEST CLUSTER)**
+- **Details:** The application is 100% TiDB Serverless compatible across all 28 migrations, 106 foreign keys, and 22 JSON columns. Migrations were executed live against the isolated `socialpilot_migration_test` database via `tidb_migration_test` under TLS encryption. Two 64-character identifier overflows were resolved with shortened index names (`idx_snap_brand_plat_met_col` and `idx_ai_rec_brand_status_created`). The production database `socialpilot` remains completely empty (0 tables) pending explicit owner approval. Local SQLite remains preserved.
 
 ### B. Media Storage Tier
 - **Status:** **CONFIGURED BUT NOT DEPLOYED**

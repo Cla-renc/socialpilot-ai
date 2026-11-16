@@ -17,12 +17,21 @@ class TiDbVerificationTest extends TestCase
 
     public function test_1_tidb_verify_command_reports_unconfigured_state_safely(): void
     {
-        $exitCode = Artisan::call('db:tidb-verify');
+        $exitCode = Artisan::call('db:tidb-verify', ['--host' => '127.0.0.1']);
         $output = Artisan::output();
 
         $this->assertEquals(0, $exitCode);
         $this->assertStringContainsString('TIDB SERVERLESS VERIFICATION', $output);
         $this->assertStringContainsString('Current active connection remains:', $output);
+    }
+
+    public function test_1b_tidb_migration_preflight_blocks_invalid_connection(): void
+    {
+        $exitCode = Artisan::call('db:tidb-migration-preflight', ['--connection' => 'mysql']);
+        $output = Artisan::output();
+
+        $this->assertEquals(1, $exitCode);
+        $this->assertStringContainsString("Target connection must strictly be 'tidb_migration_test'", $output);
     }
 
     public function test_2_mysql_configuration_supports_tls_and_tidb_options(): void

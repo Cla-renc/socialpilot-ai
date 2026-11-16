@@ -78,39 +78,35 @@ A cross-check was performed between the 8 Phase 11 production documents and the 
 
 ## 3. STEP-BY-STEP DEPLOYMENT CHECKLIST (TASK 3)
 
-### STAGE 1: PRODUCTION DATABASE SETUP (TIDB SERVERLESS)
+### STAGE 1 & 2: PRODUCTION DATABASE SETUP & MIGRATION COMPATIBILITY (TIDB SERVERLESS)
 - **Website / Dashboard:** [https://tidbcloud.com](https://tidbcloud.com)
 - **Account Requirements:** Sign up using your existing GitHub account (`Cla-renc`). No credit card required.
-- **Exact Settings:**
-  1. Click **Create Cluster** $\rightarrow$ select **Serverless (Free)**.
-  2. Cluster Name: `socialpilot-db`.
-  3. Cloud Provider & Region: `AWS / us-east-1` (or nearest to your compute host).
-  4. Generate and save a strong root password.
-  5. Click **Create**. Provisioning completes in ~15 seconds.
-- **Connection Details to Copy:**
-  - Host: e.g. `gateway01.us-east-1.prod.aws.tidbcloud.com`
-  - Port: `4000`
-  - User: e.g. `xxxxxx.root`
-  - Database: `socialpilot`
+- **Cluster Provisioned:** TiDB Serverless v8.5.3 (AWS `eu-central-1`)
+- **Stage 2 Migration Compatibility Test Status:** **PASSED & VERIFIED**
+  - Dedicated test connection: `tidb_migration_test` pointing to `socialpilot_migration_test`.
+  - Migrations tested: **28 / 28 migrations succeeded** (59 tables created: 58 application tables + 1 `migrations` tracker).
+  - Compatibility fix applied: Explicit 64-character-compliant index names for `idx_snap_brand_plat_met_col` and `idx_ai_rec_brand_status_created` in migration 28.
+  - Foreign keys (106), JSON metadata indexing, transactions, and cascade deletes fully verified.
+  - Three-way isolation confirmed: `socialpilot_migration_test` (59 tables), `socialpilot` production (0 tables untouched), local SQLite (59 tables untouched).
 - **Environment Variables Required:**
   ```env
   DB_CONNECTION=mysql
-  DB_HOST=gateway01.us-east-1.prod.aws.tidbcloud.com
+  DB_HOST=gateway01.eu-central-1.prod.aws.tidbcloud.com
   DB_PORT=4000
   DB_DATABASE=socialpilot
   DB_USERNAME=your_cluster_prefix.root
   DB_PASSWORD=your_cluster_password
   MYSQL_ATTR_SSL_CA=/etc/ssl/certs/ca-certificates.crt
   ```
-- **Commands to Execute (from local or deployment server):**
+- **Commands to Execute (Production Gate - Requires Owner Approval):**
   ```bash
-  # Test connection
-  php artisan db:monitor
+  # Test connection and preflight
+  php artisan db:tidb-verify
   
-  # Run production migrations non-destructively
+  # Run production migrations non-destructively (ONLY after owner approval)
   php artisan migrate --force
   
-  # Seed default subscription plans
+  # Seed default subscription plans (ONLY after owner approval)
   php artisan db:seed --class=PlanSeeder --force
   ```
 - **Expected Successful Output:**
@@ -119,12 +115,12 @@ A cross-check was performed between the 8 Phase 11 production documents and the 
   Migration table created successfully.
   Migrating: 0001_01_01_000000_create_users_table ... Migrated
   ...
-  Migrated: 2026_11_14_150000_create_analytics_and_ai_optimization_tables (27 migrations completed)
+  Migrated: 2026_11_14_150000_create_analytics_and_ai_optimization_tables (28 migrations completed)
   Seeding: Database\Seeders\PlanSeeder ... Seeded
   ```
 - **How to Test:** Run `php artisan db:backup --verify` against the new database connection.
 - **Free-Tier Limits:** 5 GiB storage, 50 million Request Units/month free per cluster. Up to 5 free clusters per organization.
-- **Manual Owner Action:** Create cluster in TiDB Cloud and paste connection credentials into production environment.
+- **Manual Owner Action:** Review Stage 2 report and provide explicit authorization to run migrations against production `socialpilot`.
 
 ---
 
@@ -348,7 +344,7 @@ A cross-check was performed between the 8 Phase 11 production documents and the 
 | **Release Android APK** | **DEPLOYED AND INDEPENDENTLY VERIFIED** | 56.8 MB APK generated at `com.socialpilot.ai`. Sideload ready. |
 | **Database Backup & Restoration** | **DEPLOYED AND INDEPENDENTLY VERIFIED** | `php artisan db:backup --verify` tested; table parity confirmed. |
 | **AI Inference Architecture** | **DEPLOYED AND INDEPENDENTLY VERIFIED** | Groq free tier + OpenRouter free models verified. Zero cost. |
-| **Production Database Setup** | **AWAITING ACCOUNT SETUP** | Awaiting user creation of free TiDB Serverless cluster (no payment details required). |
+| **Production Database Setup & Compatibility** | **STAGE 2 VERIFIED (TEST CLUSTER PASS)** | TiDB Serverless TLS 1.3 verified. 28/28 migrations compatible on `socialpilot_migration_test` (59 tables). Preflight safety verified. Production `socialpilot` empty (0 tables) awaiting user approval. |
 | **Laravel Production Hosting** | **CONFIGURED BUT NOT DEPLOYED** | Configured with caching and HTTPS. Awaiting user selection of host (Docker host vs Render). |
 | **Python FastAPI Hosting** | **CONFIGURED BUT NOT DEPLOYED** | Dockerfile and token auth ready. Awaiting user deployment. |
 | **Persistent Media Storage** | **CONFIGURED BUT NOT DEPLOYED** | Local volume / S3 configuration ready. |
@@ -362,6 +358,6 @@ A cross-check was performed between the 8 Phase 11 production documents and the 
 
 To execute live deployment without spending any money:
 
-1. **Step 1 (5 minutes):** Create a free TiDB Serverless cluster at [tidbcloud.com](https://tidbcloud.com) (sign in with GitHub; no card requested).
-2. **Step 2 (2 minutes):** Generate a free Groq API key at [console.groq.com](https://console.groq.com).
-3. **Step 3:** Provide the generated TiDB host and credentials so the production migration command (`php artisan migrate --force`) can be run to initialize your live database.
+1. **Step 1 (Database Migration Gate - In Progress):** Review Stage 2 TiDB Migration Compatibility Report. Confirm authorization to run `php artisan migrate --force` and initial plan seeding on production `socialpilot`.
+2. **Step 2 (AI Inference):** Groq API free tier access verified with model `openai/gpt-oss-120b`.
+3. **Step 3 (Hosting Decision):** Select target hosting environment (e.g., self-hosted Docker Compose or Render Free Web Service) to deploy web and AI containers.

@@ -1,24 +1,25 @@
 # SOCIALPILOT AI — PRODUCTION DATABASE SETUP GUIDE
 
 **Target Engine:** MySQL 8.0+ / TiDB Serverless (MySQL-Compatible Wire Protocol)  
-**Status:** Architecture Audited & Production Ready  
+**Status:** Stage 2 Migration Compatibility Live Verified on `socialpilot_migration_test`  
 **Cost:** $0.00 / month (No credit card required for TiDB Serverless)  
 
 ---
 
 ## 1. COMPATIBILITY AUDIT WITH LARAVEL MIGRATIONS
 
-SocialPilot AI has **27 migration files** spanning Phases 1 through 10. Every migration was audited against MySQL 8.0 and TiDB Serverless standards:
+SocialPilot AI has **28 migration files** spanning Phases 1 through 10. Every migration was audited and live-tested against TiDB Serverless:
 
 | Architectural Feature | Audit Finding | Compatibility Status |
 |---|---|---|
-| **Foreign Key Constraints** | 46 foreign keys defined via `$table->foreignId()->constrained()->cascadeOnDelete()`. All reference existing parent tables in proper sequential order. | **100% COMPATIBLE** |
-| **JSON Columns** | 22 JSON columns used for flexible metadata (e.g. `metadata`, `settings`, `options`, `audience_interests`, `visual_settings`). Both MySQL 8.0+ and TiDB natively index and store JSON documents. | **100% COMPATIBLE** |
-| **Indexes & Compound Keys** | Standard B-Tree indexes on `user_id`, `brand_id`, `scheduled_at`, `status`, `platform`, and compound unique indexes on `[brand_id, platform, external_id]`. | **100% COMPATIBLE** |
-| **Unique Constraints** | Handled natively across user emails, personal access tokens, and brand slugs. | **100% COMPATIBLE** |
-| **Database Transactions** | All critical publishing updates and token refreshes wrap DB operations in `DB::transaction(...)`. Fully supported with ACID guarantees. | **100% COMPATIBLE** |
-| **Database-Specific SQL** | Zero raw SQLite functions (`strftime`, `random()`, SQLite PRAGMAs) are present in Eloquent queries or application services. All queries use Laravel QueryBuilder. | **100% COMPATIBLE** |
-| **Timezone & Timestamps** | Laravel handles timestamps via Carbon in UTC (`created_at`, `updated_at`, `scheduled_at`). MySQL/TiDB stores datetime fields natively in UTC. | **100% COMPATIBLE** |
+| **Foreign Key Constraints** | 106 foreign keys across tables defined via `$table->foreignId()->constrained()->cascadeOnDelete()`. All reference existing parent tables in proper sequential order. | **100% COMPATIBLE & VERIFIED** |
+| **JSON Columns** | 22 JSON columns used for flexible metadata (e.g. `metadata`, `settings`, `options`, `audience_interests`, `visual_settings`). Both MySQL 8.0+ and TiDB natively index and store JSON documents. | **100% COMPATIBLE & VERIFIED** |
+| **Indexes & Compound Keys** | Standard B-Tree indexes on `user_id`, `brand_id`, `scheduled_at`, `status`, `platform`, and compound unique indexes on `[brand_id, platform, external_id]`. | **100% COMPATIBLE & VERIFIED** |
+| **Identifier Length (64 Chars)** | MySQL and TiDB enforce a strict 64-character limit on index and constraint names. Two generated index names in `2026_11_14_150000_create_analytics_and_ai_optimization_tables.php` exceeded 64 characters and were assigned explicit shortened identifiers (`idx_snap_brand_plat_met_col` and `idx_ai_rec_brand_status_created`). | **RESOLVED & VERIFIED** |
+| **Unique Constraints** | Handled natively across user emails, personal access tokens, and brand slugs. Verified with error 1062 duplicate rejection. | **100% COMPATIBLE & VERIFIED** |
+| **Database Transactions** | All critical publishing updates and token refreshes wrap DB operations in `DB::transaction(...)`. Fully supported under TiDB snapshot isolation. | **100% COMPATIBLE & VERIFIED** |
+| **Database-Specific SQL** | Zero raw SQLite functions (`strftime`, `random()`, SQLite PRAGMAs) are present in Eloquent queries or application services. All queries use Laravel QueryBuilder. | **100% COMPATIBLE & VERIFIED** |
+| **Timezone & Timestamps** | Laravel handles timestamps via Carbon in UTC (`created_at`, `updated_at`, `scheduled_at`). MySQL/TiDB stores datetime fields natively in UTC. | **100% COMPATIBLE & VERIFIED** |
 
 ---
 
@@ -93,24 +94,26 @@ In `config/database.php`, the default MySQL connection is pre-configured to auto
 
 ---
 
-## 5. NON-DESTRUCTIVE MIGRATION EXECUTION
+## 5. MIGRATION COMPATIBILITY TESTING (STAGE 2 VERIFIED)
 
-Once connection variables are configured in the production environment:
+SocialPilot AI enforces strict database isolation. The migration test suite was executed against an isolated test database `socialpilot_migration_test` using the dedicated connection `tidb_migration_test`:
 
-1. **Verify Connectivity:**
+1. **Preflight Safety Verification:**
    ```bash
-   php artisan db:monitor
+   php artisan db:tidb-migration-preflight
    ```
-2. **Execute Migrations:**
-   ```bash
-   php artisan migrate --force
-   ```
-   *The `--force` flag is mandatory in production environments to prevent accidental interactive prompts.*
+   *Guarantees that TLS is active, target database is strictly `socialpilot_migration_test`, and production `socialpilot` is protected.*
 
-3. **Seed Initial Reference Plans:**
+2. **Isolated Migration Execution:**
    ```bash
-   php artisan db:seed --class=PlanSeeder --force
+   php artisan migrate --database=tidb_migration_test
    ```
+   *Executes all 28 migrations strictly on the test cluster.*
+
+3. **Production Migration Execution Gate (STOP POINT):**
+   > [!CAUTION]
+   > The production database `socialpilot` remains **100% empty (0 tables)** and untouched.
+   > Live production migrations (`php artisan migrate --force`) and production seeders (`php artisan db:seed --class=PlanSeeder --force`) must **only** be executed after explicit owner approval.
 
 ---
 
