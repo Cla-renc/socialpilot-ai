@@ -42,6 +42,9 @@ class BackupDatabaseCommand extends Command
 
         if ($connection === 'sqlite') {
             $source = config('database.connections.sqlite.database');
+            if ($source === ':memory:' || empty($source)) {
+                $source = database_path('database.sqlite');
+            }
             if (!File::exists($source)) {
                 $this->error("SQLite database file not found at: {$source}");
                 return self::FAILURE;
