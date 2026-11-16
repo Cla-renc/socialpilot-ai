@@ -52,7 +52,14 @@ class AiGenerationService
             return $draft->fresh();
         }
 
-        $generated = $this->generateContentForProvider($brand, $provider, $platform, $contentType, $prompt);
+        try {
+            $generated = $this->generateContentForProvider($brand, $provider, $platform, $contentType, $prompt);
+        } catch (\Throwable) {
+            $generated = [
+                'body' => $this->generateInternalFallback($brand, $platform, $contentType, $prompt),
+                'is_ai_generated' => false,
+            ];
+        }
         $actualProvider = $generated['is_ai_generated'] ? $provider : 'internal';
         $body = $generated['body'];
         $draft = BrandContentDraft::query()->create([
@@ -213,7 +220,7 @@ class AiGenerationService
             'openai' => config('services.ai.providers.openai.model', 'gpt-4o-mini'),
             'gemini' => config('services.ai.providers.gemini.model', 'gemini-1.5-flash'),
             'openrouter' => config('services.ai.providers.openrouter.model', 'meta-llama/llama-3.1-8b-instruct:free'),
-            'groq' => config('services.ai.providers.groq.model', 'llama-3.3-70b-versatile'),
+            'groq' => config('services.ai.providers.groq.model', 'openai/gpt-oss-120b'),
             'ollama' => config('services.ai.providers.ollama.model', 'llama3.2:3b'),
             default => config('services.ai.providers.internal.model', 'socialpilot-lite'),
         };

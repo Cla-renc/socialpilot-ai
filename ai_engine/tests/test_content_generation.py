@@ -239,7 +239,7 @@ class ContentGenerationEngineTests(unittest.IsolatedAsyncioTestCase):
             groq_mgr = AIProviderManager()
             groq_status = groq_mgr.check_availability("groq")
             self.assertTrue(groq_status["available"])
-            self.assertEqual(groq_status["model"], "llama-3.3-70b-versatile")
+            self.assertEqual(groq_status["model"], "openai/gpt-oss-120b")
 
         mgr = AIProviderManager()
         internal_status = mgr.check_availability("internal")

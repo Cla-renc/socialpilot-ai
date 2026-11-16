@@ -10,21 +10,24 @@
 ## 1. GROQ MODEL COMPATIBILITY CORRECTION
 
 ### 1.1 Deprecation Analysis
-- **Deprecated Model:** `llama-3.1-8b-instant` (retired by Groq on August 16, 2026).
-- **Replacement Selected:** **`llama-3.3-70b-versatile`** (Meta Llama 3.3 70B).
+- **Deprecated Models:** `llama-3.1-8b-instant` and `llama-3.3-70b-versatile` (both officially retired by Groq on August 16, 2026; reference: https://console.groq.com/docs/deprecations).
+- **Replacement Selected & Verified:** **`openai/gpt-oss-120b`** (OpenAI flagship open-weight production model hosted on Groq).
 - **Free-Tier Limits on Groq:**
   - Requests Per Minute (RPM): 30
   - Requests Per Day (RPD): 1,000
-  - Tokens Per Day (TPD): 100,000
+  - Tokens Per Minute (TPM): 8,000
+  - Tokens Per Day (TPD): 200,000
   - Context Window: 131,072 tokens
-  - Cost: **$0.00** (Permanently available on free tier)
+  - Max Completion Tokens: 65,536 tokens
+  - Structured Output Support: Full JSON Object Mode (`response_format: {"type": "json_object"}`)
+  - Cost: **$0.00** (Permanently available on Groq Free Tier without credit card)
 
 ### 1.2 Codebase Updates Executed
-1. `ai_engine/ai_engine/ai_providers.py`: Default Groq model updated to `llama-3.3-70b-versatile`.
-2. `ai_engine/tests/test_content_generation.py`: Updated test assertion to verify `llama-3.3-70b-versatile`.
-3. `app/Services/AiGenerationService.php`: Updated default Groq fallback model to `llama-3.3-70b-versatile`.
-4. `config/services.php`: Updated Groq model configuration to `env('GROQ_MODEL', 'llama-3.3-70b-versatile')`.
-5. `.env.example`: Updated template to `GROQ_MODEL=llama-3.3-70b-versatile`.
+1. `ai_engine/ai_engine/ai_providers.py`: Default Groq model updated to `openai/gpt-oss-120b`.
+2. `ai_engine/tests/test_content_generation.py`: Updated test assertion to verify `openai/gpt-oss-120b`.
+3. `app/Services/AiGenerationService.php`: Updated default Groq fallback model to `openai/gpt-oss-120b`.
+4. `config/services.php`: Updated Groq model configuration to `env('GROQ_MODEL', 'openai/gpt-oss-120b')`.
+5. `.env.example`: Updated template to `GROQ_MODEL=openai/gpt-oss-120b`.
 
 ### 1.3 Fallback & Resilience Verification
 - **Provider Failure / Rate Limits (HTTP 429):** If Groq hits rate limits or experiences network failures, `AiGenerationService` catches the failure, generates a deterministic internal template fallback, explicitly marks `is_ai_generated => false`, sets `ai_provider => 'internal'`, and emits a notification: *"saved using an internal fallback because the provider did not return usable content."*

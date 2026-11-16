@@ -86,7 +86,7 @@ Because public PaaS providers (Render, Railway, Koyeb, Fly.io) either charge for
 |     - Capacity: 25 GB media storage + global CDN delivery                         |
 |                                                                                   |
 |  3. AI INFERENCE TIER (Cloud Multi-Provider)                                      |
-|     - Providers: Groq Cloud (llama-3.3-70b-versatile free tier)                      |
+|     - Providers: Groq Cloud (openai/gpt-oss-120b verified free tier)               |
 |                  OpenRouter (meta-llama/llama-3.1-8b-instruct:free)               |
 |                  Ollama (local inference fallback)                                |
 |     - Cost: $0.00 / month (Strict zero-cost policy)                               |

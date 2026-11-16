@@ -187,7 +187,7 @@ A cross-check was performed between the 8 Phase 11 production documents and the 
   TREND_ENGINE_INTERNAL_TOKEN=YOUR_64_CHAR_HEX_TOKEN
   AI_PROVIDER=groq
   GROQ_API_KEY=your_free_groq_api_key
-  GROQ_MODEL=llama-3.3-70b-versatile
+  GROQ_MODEL=openai/gpt-oss-120b
   GROQ_BASE_URL=https://api.groq.com/openai/v1
   OPENROUTER_API_KEY=your_openrouter_api_key
   OPENROUTER_MODEL=meta-llama/llama-3.1-8b-instruct:free
@@ -330,7 +330,7 @@ A cross-check was performed between the 8 Phase 11 production documents and the 
   2. **Readiness Probe:** `GET https://app.yourdomain.com/api/v1/health/ready` $\rightarrow$ `HTTP 200 {"ready":true}`.
   3. **Python AI Health:** `GET https://ai.yourdomain.com/health` $\rightarrow$ `HTTP 200 {"status":"ok"}`.
   4. **Web UI Login:** Navigate to `https://app.yourdomain.com/login`, sign in, and verify dashboard renders without JavaScript errors.
-  5. **AI Content Generation:** Generate draft post in Content Studio using Groq `llama-3.3-70b-versatile`. Confirm draft saves to database.
+  5. **AI Content Generation:** Generate draft post in Content Studio using Groq `openai/gpt-oss-120b`. Confirm draft saves to database.
   6. **Media Generation:** Generate a Quote Card in Media Studio. Confirm image renders from storage URL.
   7. **Scheduled Post:** Schedule post for 2 minutes in the future. Confirm status transitions to `scheduled`.
   8. **Queue Processing:** Confirm queue worker processes the job and status updates to `published` (or `simulated_success` if live OAuth account is in sandbox mode).

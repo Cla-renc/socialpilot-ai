@@ -85,11 +85,11 @@ PUBLISHING_INTERNAL_TOKEN=SAME_64_CHAR_HEX_TOKEN_AS_ABOVE
 # ==============================================================================
 # Primary default provider: internal (heuristic) or groq (free tier)
 AI_PROVIDER=groq
-AI_MODEL=llama-3.3-70b-versatile
+AI_MODEL=openai/gpt-oss-120b
 
 # Groq Cloud (Free Tier Verified)
 GROQ_API_KEY=YOUR_FREE_GROQ_API_KEY
-GROQ_MODEL=llama-3.3-70b-versatile
+GROQ_MODEL=openai/gpt-oss-120b
 GROQ_BASE_URL=https://api.groq.com/openai/v1
 
 # OpenRouter (Verified Free Model Identifiers Only)
