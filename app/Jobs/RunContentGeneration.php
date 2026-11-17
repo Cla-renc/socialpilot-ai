@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\BrandContentDraft;
 use App\Models\ContentGenerationJob;
 use App\Services\ContentGenerationService;
 use Illuminate\Bus\Queueable;
@@ -25,14 +26,35 @@ class RunContentGeneration implements ShouldQueue
     {
         $job = ContentGenerationJob::query()->findOrFail($this->generationJobId);
 
+        // Fast idempotency check: if job is already marked completed and has draft, no-op
+        if ($job->status === 'completed' && $job->result_draft_id) {
+            return;
+        }
+
+        // If a draft already exists for this job, ensure job links to it and complete
+        $existingDraft = BrandContentDraft::where('generation_job_id', $job->id)->first();
+        if ($existingDraft) {
+            $job->update([
+                'status' => 'completed',
+                'progress' => 100,
+                'result_draft_id' => $existingDraft->id,
+                'completed_at' => $job->completed_at ?? now(),
+            ]);
+
+            return;
+        }
+
         try {
             $service->generateForJob($job);
         } catch (Throwable $e) {
-            $job->update([
-                'status' => 'failed',
-                'error_message' => $e->getMessage(),
-                'completed_at' => now(),
-            ]);
+            // Only update job status to failed if no draft was created
+            if (! BrandContentDraft::where('generation_job_id', $job->id)->exists()) {
+                $job->update([
+                    'status' => 'failed',
+                    'error_message' => $e->getMessage(),
+                    'completed_at' => now(),
+                ]);
+            }
 
             throw $e;
         }

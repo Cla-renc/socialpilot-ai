@@ -6,6 +6,7 @@ use App\Models\BrandContentDraft;
 use App\Models\ContentRevision;
 use App\Models\ContentVariation;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
@@ -92,41 +93,46 @@ class ContentVariationService
 
     public function selectVariation(BrandContentDraft $draft, ContentVariation $variation, User $user): BrandContentDraft
     {
-        // Unset previous selection
-        ContentVariation::where('draft_id', $draft->id)->update(['is_selected' => false]);
-        $variation->update(['is_selected' => true]);
+        return DB::transaction(function () use ($draft, $variation, $user) {
+            $lockedDraft = BrandContentDraft::where('id', $draft->id)->lockForUpdate()->firstOrFail();
+            $lockedVariation = ContentVariation::where('id', $variation->id)->lockForUpdate()->firstOrFail();
 
-        // Next revision number
-        $nextRevision = ($draft->revisions()->max('revision_number') ?? 0) + 1;
+            // Unset previous selection
+            ContentVariation::where('draft_id', $lockedDraft->id)->update(['is_selected' => false]);
+            $lockedVariation->update(['is_selected' => true]);
 
-        // Apply variation to draft
-        $draft->update([
-            'title' => $variation->title ?: $draft->title,
-            'hook' => $variation->hook ?: $draft->hook,
-            'body' => $variation->body,
-            'caption' => $variation->caption ?: $draft->caption,
-            'call_to_action' => $variation->call_to_action ?: $draft->call_to_action,
-            'hashtags' => $variation->hashtags ?: $draft->hashtags,
-            'quality_score' => $variation->quality_score ?: $draft->quality_score,
-            'selected_variation_id' => $variation->id,
-        ]);
+            // Next revision number safely allocated under lock
+            $nextRevision = ($lockedDraft->revisions()->max('revision_number') ?? 0) + 1;
 
-        // Record revision
-        ContentRevision::create([
-            'draft_id' => $draft->id,
-            'user_id' => $user->id,
-            'revision_number' => $nextRevision,
-            'action' => 'select_variation',
-            'instructions' => "Applied '{$variation->style}' variation #{$variation->id}",
-            'title' => $draft->title,
-            'hook' => $draft->hook,
-            'body' => $draft->body,
-            'caption' => $draft->caption,
-            'call_to_action' => $draft->call_to_action,
-            'hashtags' => $draft->hashtags,
-            'quality_score' => $draft->quality_score,
-        ]);
+            // Apply variation to draft
+            $lockedDraft->update([
+                'title' => $lockedVariation->title ?: $lockedDraft->title,
+                'hook' => $lockedVariation->hook ?: $lockedDraft->hook,
+                'body' => $lockedVariation->body,
+                'caption' => $lockedVariation->caption ?: $lockedDraft->caption,
+                'call_to_action' => $lockedVariation->call_to_action ?: $lockedDraft->call_to_action,
+                'hashtags' => $lockedVariation->hashtags ?: $lockedDraft->hashtags,
+                'quality_score' => $lockedVariation->quality_score ?: $lockedDraft->quality_score,
+                'selected_variation_id' => $lockedVariation->id,
+            ]);
 
-        return $draft->fresh(['variations', 'revisions']);
+            // Record revision
+            ContentRevision::create([
+                'draft_id' => $lockedDraft->id,
+                'user_id' => $user->id,
+                'revision_number' => $nextRevision,
+                'action' => 'select_variation',
+                'instructions' => "Applied '{$lockedVariation->style}' variation #{$lockedVariation->id}",
+                'title' => $lockedDraft->title,
+                'hook' => $lockedDraft->hook,
+                'body' => $lockedDraft->body,
+                'caption' => $lockedDraft->caption,
+                'call_to_action' => $lockedDraft->call_to_action,
+                'hashtags' => $lockedDraft->hashtags,
+                'quality_score' => $lockedDraft->quality_score,
+            ]);
+
+            return $lockedDraft->fresh(['variations', 'revisions']);
+        });
     }
 }

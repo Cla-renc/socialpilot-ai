@@ -45,7 +45,7 @@ services:
       DB_PASSWORD: "${DB_PASSWORD}"
 
       # Session, Cache & Queue (In-Database)
-      SESSION_DRIVER: database
+      SESSION_DRIVER: file
       CACHE_STORE: database
       QUEUE_CONNECTION: database
 
@@ -168,7 +168,7 @@ services:
       DB_DATABASE: "${DB_DATABASE:-socialpilot_local}"
       DB_USERNAME: "${DB_USERNAME:-socialpilot_user}"
       DB_PASSWORD: "${DB_PASSWORD}"
-      SESSION_DRIVER: database
+      SESSION_DRIVER: file
       CACHE_STORE: database
       QUEUE_CONNECTION: database
       FILESYSTEM_DISK: local

@@ -11,6 +11,8 @@ use App\Models\ContentTrendSource;
 use App\Models\ContentVariation;
 use App\Models\TrendingTopic;
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 use Throwable;
@@ -23,10 +25,26 @@ class ContentGenerationService
 
     public function generateForJob(ContentGenerationJob $job): BrandContentDraft
     {
+        // 1. Fast-path check for idempotency & retry safety:
+        // If a draft is already linked or exists for this job, return it without re-generating.
+        $existingDraft = BrandContentDraft::where('generation_job_id', $job->id)->first();
+        if ($existingDraft) {
+            if ($job->status !== 'completed' || ! $job->result_draft_id) {
+                $job->update([
+                    'status' => 'completed',
+                    'progress' => 100,
+                    'result_draft_id' => $existingDraft->id,
+                    'completed_at' => $job->completed_at ?? now(),
+                ]);
+            }
+
+            return $existingDraft->fresh(['variations', 'revisions', 'trendSources']);
+        }
+
         $job->update([
             'status' => 'processing',
             'progress' => 20,
-            'started_at' => now(),
+            'started_at' => $job->started_at ?? now(),
             'error_message' => null,
         ]);
 
@@ -65,7 +83,7 @@ class ContentGenerationService
 
         $responsePayload = null;
 
-        // Attempt calling Python AI Engine
+        // Attempt calling Python AI Engine (OUTSIDE DATABASE TRANSACTION)
         if ($engineUrl && $token) {
             try {
                 $response = Http::acceptJson()
@@ -121,92 +139,133 @@ class ContentGenerationService
 
         $job->update(['progress' => 80]);
 
-        // Persist BrandContentDraft
-        $draft = BrandContentDraft::create([
-            'user_id' => $user->id,
-            'brand_id' => $brand->id,
-            'generation_job_id' => $job->id,
-            'title' => $responsePayload['title'] ?? ($brand->name.' '.$job->platform.' post'),
-            'platform' => $job->platform,
-            'content_type' => 'post',
-            'content_format' => $job->content_format,
-            'objective' => $responsePayload['objective'] ?? $job->objective,
-            'category' => $responsePayload['category'] ?? $job->category,
-            'status' => 'draft',
-            'prompt' => $job->instructions ?? ($job->objective.' post for '.$brand->name),
-            'hook' => $responsePayload['hook'] ?? null,
-            'body' => $responsePayload['body'] ?? '',
-            'caption' => $responsePayload['caption'] ?? null,
-            'call_to_action' => $responsePayload['call_to_action'] ?? null,
-            'hashtags' => $responsePayload['hashtags'] ?? [],
-            'quality_score' => $responsePayload['quality_score'] ?? 85,
-            'quality_evaluation' => $responsePayload['quality_evaluation'] ?? [],
-            'ai_provider' => $responsePayload['ai_provider'] ?? $provider,
-            'ai_model' => $responsePayload['ai_model'] ?? $model ?? 'socialpilot-lite',
-            'is_ai_generated' => ($responsePayload['ai_provider'] ?? $provider) !== 'internal',
-            'metadata' => [
-                'strategy' => $responsePayload['strategy'] ?? null,
-                'format_notes' => $responsePayload['format_notes'] ?? null,
-                'trend_id' => $job->trend_id,
-            ],
-        ]);
+        // 2. Transactional persistence:
+        // Wrap draft creation, initial revision, variations, trend source, and job completion in a DB transaction
+        $draft = DB::transaction(function () use ($job, $user, $brand, $responsePayload, $provider, $model) {
+            // Lock job record to serialize concurrent operations
+            $lockedJob = ContentGenerationJob::where('id', $job->id)->lockForUpdate()->firstOrFail();
 
-        // Create initial revision
-        ContentRevision::create([
-            'draft_id' => $draft->id,
-            'user_id' => $user->id,
-            'revision_number' => 1,
-            'action' => 'initial_generation',
-            'instructions' => $job->instructions,
-            'title' => $draft->title,
-            'hook' => $draft->hook,
-            'body' => $draft->body,
-            'caption' => $draft->caption,
-            'call_to_action' => $draft->call_to_action,
-            'hashtags' => $draft->hashtags,
-            'quality_score' => $draft->quality_score,
-        ]);
+            // Double check within transaction if another worker already persisted the draft
+            $existingDraft = BrandContentDraft::where('generation_job_id', $lockedJob->id)->lockForUpdate()->first();
+            if ($existingDraft) {
+                if ($lockedJob->status !== 'completed' || ! $lockedJob->result_draft_id) {
+                    $lockedJob->update([
+                        'status' => 'completed',
+                        'progress' => 100,
+                        'result_draft_id' => $existingDraft->id,
+                        'completed_at' => $lockedJob->completed_at ?? now(),
+                    ]);
+                }
 
-        // Associate Trend Source if trend used
-        if ($job->trend_id) {
-            ContentTrendSource::firstOrCreate([
-                'draft_id' => $draft->id,
-                'trending_topic_id' => $job->trend_id,
-            ], [
-                'relationship_type' => 'primary',
-            ]);
-        }
+                return $existingDraft;
+            }
 
-        // Persist variations if generated
-        if (! empty($responsePayload['variations']) && is_array($responsePayload['variations'])) {
-            foreach ($responsePayload['variations'] as $v) {
-                ContentVariation::create([
-                    'draft_id' => $draft->id,
+            try {
+                // Persist BrandContentDraft
+                $newDraft = BrandContentDraft::create([
                     'user_id' => $user->id,
                     'brand_id' => $brand->id,
-                    'style' => $v['style'] ?? 'conversational',
-                    'title' => $v['title'] ?? $draft->title,
-                    'hook' => $v['hook'] ?? null,
-                    'body' => $v['body'] ?? $draft->body,
-                    'caption' => $v['caption'] ?? $draft->caption,
-                    'call_to_action' => $v['call_to_action'] ?? $draft->call_to_action,
-                    'hashtags' => $v['hashtags'] ?? $draft->hashtags,
-                    'quality_score' => $v['quality_score'] ?? 80,
-                    'quality_evaluation' => $v['quality_evaluation'] ?? [],
-                    'is_selected' => false,
+                    'generation_job_id' => $lockedJob->id,
+                    'title' => $responsePayload['title'] ?? ($brand->name.' '.$lockedJob->platform.' post'),
+                    'platform' => $lockedJob->platform,
+                    'content_type' => 'post',
+                    'content_format' => $lockedJob->content_format,
+                    'objective' => $responsePayload['objective'] ?? $lockedJob->objective,
+                    'category' => $responsePayload['category'] ?? $lockedJob->category,
+                    'status' => 'draft',
+                    'prompt' => $lockedJob->instructions ?? ($lockedJob->objective.' post for '.$brand->name),
+                    'hook' => $responsePayload['hook'] ?? null,
+                    'body' => $responsePayload['body'] ?? '',
+                    'caption' => $responsePayload['caption'] ?? null,
+                    'call_to_action' => $responsePayload['call_to_action'] ?? null,
+                    'hashtags' => $responsePayload['hashtags'] ?? [],
+                    'quality_score' => $responsePayload['quality_score'] ?? 85,
+                    'quality_evaluation' => $responsePayload['quality_evaluation'] ?? [],
+                    'ai_provider' => $responsePayload['ai_provider'] ?? $provider,
+                    'ai_model' => $responsePayload['ai_model'] ?? $model ?? 'socialpilot-lite',
+                    'is_ai_generated' => ($responsePayload['ai_provider'] ?? $provider) !== 'internal',
+                    'metadata' => [
+                        'strategy' => $responsePayload['strategy'] ?? null,
+                        'format_notes' => $responsePayload['format_notes'] ?? null,
+                        'trend_id' => $lockedJob->trend_id,
+                    ],
+                ]);
+            } catch (UniqueConstraintViolationException $e) {
+                // If a concurrent thread inserted the draft first, gracefully recover and load it
+                $existingDraft = BrandContentDraft::where('generation_job_id', $lockedJob->id)->first();
+                if ($existingDraft) {
+                    $lockedJob->update([
+                        'status' => 'completed',
+                        'progress' => 100,
+                        'result_draft_id' => $existingDraft->id,
+                        'completed_at' => $lockedJob->completed_at ?? now(),
+                    ]);
+
+                    return $existingDraft;
+                }
+
+                throw $e;
+            }
+
+            // Create initial revision (Revision 1)
+            ContentRevision::create([
+                'draft_id' => $newDraft->id,
+                'user_id' => $user->id,
+                'revision_number' => 1,
+                'action' => 'initial_generation',
+                'instructions' => $lockedJob->instructions,
+                'title' => $newDraft->title,
+                'hook' => $newDraft->hook,
+                'body' => $newDraft->body,
+                'caption' => $newDraft->caption,
+                'call_to_action' => $newDraft->call_to_action,
+                'hashtags' => $newDraft->hashtags,
+                'quality_score' => $newDraft->quality_score,
+            ]);
+
+            // Associate Trend Source if trend used
+            if ($lockedJob->trend_id) {
+                ContentTrendSource::firstOrCreate([
+                    'draft_id' => $newDraft->id,
+                    'trending_topic_id' => $lockedJob->trend_id,
+                ], [
+                    'relationship_type' => 'primary',
                 ]);
             }
-        }
 
-        // Update Job as completed
-        $job->update([
-            'status' => 'completed',
-            'progress' => 100,
-            'result_draft_id' => $draft->id,
-            'completed_at' => now(),
-        ]);
+            // Persist variations if generated
+            if (! empty($responsePayload['variations']) && is_array($responsePayload['variations'])) {
+                foreach ($responsePayload['variations'] as $v) {
+                    ContentVariation::create([
+                        'draft_id' => $newDraft->id,
+                        'user_id' => $user->id,
+                        'brand_id' => $brand->id,
+                        'style' => $v['style'] ?? 'conversational',
+                        'title' => $v['title'] ?? $newDraft->title,
+                        'hook' => $v['hook'] ?? null,
+                        'body' => $v['body'] ?? $newDraft->body,
+                        'caption' => $v['caption'] ?? $newDraft->caption,
+                        'call_to_action' => $v['call_to_action'] ?? $newDraft->call_to_action,
+                        'hashtags' => $v['hashtags'] ?? $newDraft->hashtags,
+                        'quality_score' => $v['quality_score'] ?? 80,
+                        'quality_evaluation' => $v['quality_evaluation'] ?? [],
+                        'is_selected' => false,
+                    ]);
+                }
+            }
 
-        // Dashboard notification & agent execution
+            // Update Job as completed
+            $lockedJob->update([
+                'status' => 'completed',
+                'progress' => 100,
+                'result_draft_id' => $newDraft->id,
+                'completed_at' => now(),
+            ]);
+
+            return $newDraft;
+        });
+
+        // 3. Post-transaction notifications & audit logging (outside transaction)
         $this->notificationService->notify(
             $user,
             'Content draft generated',

@@ -74,6 +74,10 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --no-progre
 
 # 7. Configure Nginx, PHP, Supervisor, and Entrypoint
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
+
+# Disable Debian's default Nginx site to prevent server conflicts
+RUN rm -f /etc/nginx/sites-enabled/default
+
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/99-custom.ini
 COPY docker/php/php-fpm.d/zz-docker.conf /usr/local/etc/php-fpm.d/zz-docker.conf
 COPY docker/supervisor/supervisord.laravel.conf /etc/supervisor/conf.d/supervisord.conf

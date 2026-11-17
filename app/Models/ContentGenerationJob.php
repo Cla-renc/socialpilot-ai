@@ -57,4 +57,9 @@ class ContentGenerationJob extends Model
     {
         return $this->belongsTo(BrandContentDraft::class, 'result_draft_id');
     }
+
+    public function draft(): HasOne
+    {
+        return $this->hasOne(BrandContentDraft::class, 'generation_job_id');
+    }
 }

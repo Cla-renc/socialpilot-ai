@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\BrandContentDraft;
 use App\Models\ContentRevision;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
@@ -58,39 +59,42 @@ class ContentImprovementService
             $result = $this->localImprovement($draft, $operation, $targetPlatform, $targetTone, $customInstructions);
         }
 
-        // Increment revision number
-        $nextRevision = ($draft->revisions()->max('revision_number') ?? 0) + 1;
+        // Increment revision number and update draft within atomic transaction with row locking
+        return DB::transaction(function () use ($draft, $result, $operation, $targetPlatform, $customInstructions, $user) {
+            $lockedDraft = BrandContentDraft::where('id', $draft->id)->lockForUpdate()->firstOrFail();
+            $nextRevision = ($lockedDraft->revisions()->max('revision_number') ?? 0) + 1;
 
-        // Update draft
-        $draft->update([
-            'title' => $result['title'] ?? $draft->title,
-            'hook' => $result['hook'] ?? $draft->hook,
-            'body' => $result['body'] ?? $draft->body,
-            'caption' => $result['caption'] ?? $draft->caption,
-            'call_to_action' => $result['call_to_action'] ?? $draft->call_to_action,
-            'hashtags' => $result['hashtags'] ?? $draft->hashtags,
-            'platform' => $result['platform'] ?? $draft->platform,
-            'quality_score' => $result['quality_score'] ?? $draft->quality_score,
-            'quality_evaluation' => $result['quality_evaluation'] ?? $draft->quality_evaluation,
-        ]);
+            // Update draft
+            $lockedDraft->update([
+                'title' => $result['title'] ?? $lockedDraft->title,
+                'hook' => $result['hook'] ?? $lockedDraft->hook,
+                'body' => $result['body'] ?? $lockedDraft->body,
+                'caption' => $result['caption'] ?? $lockedDraft->caption,
+                'call_to_action' => $result['call_to_action'] ?? $lockedDraft->call_to_action,
+                'hashtags' => $result['hashtags'] ?? $lockedDraft->hashtags,
+                'platform' => $result['platform'] ?? $lockedDraft->platform,
+                'quality_score' => $result['quality_score'] ?? $lockedDraft->quality_score,
+                'quality_evaluation' => $result['quality_evaluation'] ?? $lockedDraft->quality_evaluation,
+            ]);
 
-        // Record revision
-        ContentRevision::create([
-            'draft_id' => $draft->id,
-            'user_id' => $user->id,
-            'revision_number' => $nextRevision,
-            'action' => $operation,
-            'instructions' => $customInstructions ?: ($result['action_summary'] ?? "Applied {$operation}"),
-            'title' => $draft->title,
-            'hook' => $draft->hook,
-            'body' => $draft->body,
-            'caption' => $draft->caption,
-            'call_to_action' => $draft->call_to_action,
-            'hashtags' => $draft->hashtags,
-            'quality_score' => $draft->quality_score,
-        ]);
+            // Record revision
+            ContentRevision::create([
+                'draft_id' => $lockedDraft->id,
+                'user_id' => $user->id,
+                'revision_number' => $nextRevision,
+                'action' => $operation,
+                'instructions' => $customInstructions ?: ($result['action_summary'] ?? "Applied {$operation}"),
+                'title' => $lockedDraft->title,
+                'hook' => $lockedDraft->hook,
+                'body' => $lockedDraft->body,
+                'caption' => $lockedDraft->caption,
+                'call_to_action' => $lockedDraft->call_to_action,
+                'hashtags' => $lockedDraft->hashtags,
+                'quality_score' => $lockedDraft->quality_score,
+            ]);
 
-        return $draft->fresh(['variations', 'revisions', 'trendSources']);
+            return $lockedDraft->fresh(['variations', 'revisions', 'trendSources']);
+        });
     }
 
     protected function localImprovement(
