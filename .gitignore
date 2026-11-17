@@ -5,6 +5,7 @@
 .env.docker
 !.env.example
 !.env.docker.example
+!.env.render.example
 .phpactor.json
 .phpunit.result.cache
 /.fleet
