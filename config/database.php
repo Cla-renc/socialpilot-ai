@@ -86,6 +86,46 @@ return [
             ]) : [],
         ],
 
+        'tidb_staging_migrator' => [
+            'driver' => 'mysql',
+            'url' => env('DB_URL'),
+            'host' => env('TIDB_STAGING_DB_HOST', env('DB_HOST', 'gateway01.eu-central-1.prod.aws.tidbcloud.com')),
+            'port' => env('TIDB_STAGING_DB_PORT', env('DB_PORT', '4000')),
+            'database' => env('TIDB_STAGING_DB_DATABASE', 'socialpilot_staging'),
+            'username' => env('TIDB_STAGING_MIGRATOR_USERNAME', 'AZDARrqgy4MBFGE.staging_migrator'),
+            'password' => env('TIDB_STAGING_MIGRATOR_PASSWORD', ''),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('TIDB_STAGING_MYSQL_ATTR_SSL_CA', env('MYSQL_ATTR_SSL_CA')),
+            ]) : [],
+        ],
+
+        'tidb_staging_app' => [
+            'driver' => 'mysql',
+            'url' => env('DB_URL'),
+            'host' => env('TIDB_STAGING_DB_HOST', env('DB_HOST', 'gateway01.eu-central-1.prod.aws.tidbcloud.com')),
+            'port' => env('TIDB_STAGING_DB_PORT', env('DB_PORT', '4000')),
+            'database' => env('TIDB_STAGING_DB_DATABASE', 'socialpilot_staging'),
+            'username' => env('TIDB_STAGING_APP_USERNAME', 'AZDARrqgy4MBFGE.staging_app'),
+            'password' => env('TIDB_STAGING_APP_PASSWORD', ''),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('TIDB_STAGING_MYSQL_ATTR_SSL_CA', env('MYSQL_ATTR_SSL_CA')),
+            ]) : [],
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),
