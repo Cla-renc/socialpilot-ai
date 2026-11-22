@@ -2,13 +2,15 @@
 set -e
 
 # 1. Adapt Nginx port to host environment (e.g. Render injects PORT=10000)
-# Use perl-compatible in-place replacement to avoid POSIX sh bracket-escaping
-# issues with sed's character classes across different /bin/sh implementations.
+# Ensure Debian default site is removed so our Laravel config is the sole default_server
+rm -f /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default /var/www/html/index.nginx-debian.html
+
 PORT="${PORT:-80}"
 if [ -f /etc/nginx/conf.d/default.conf ]; then
     # Replace every listen directive that references port 80 with $PORT.
-    # Using plain string replacement (no regex special chars) for reliability.
+    sed -i "s|listen 80 default_server;|listen ${PORT} default_server;|g" /etc/nginx/conf.d/default.conf
     sed -i "s|listen 80;|listen ${PORT};|g" /etc/nginx/conf.d/default.conf
+    sed -i "s|listen \[::\]:80 default_server;|listen [::]:${PORT} default_server;|g" /etc/nginx/conf.d/default.conf
     sed -i "s|listen \[::\]:80;|listen [::]:${PORT};|g" /etc/nginx/conf.d/default.conf
 fi
 
