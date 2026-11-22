@@ -1,11 +1,15 @@
 #!/usr/bin/env sh
 set -e
 
-# 1. Adapt Nginx port to host environment (e.g. Render assigns $PORT)
+# 1. Adapt Nginx port to host environment (e.g. Render injects PORT=10000)
+# Use perl-compatible in-place replacement to avoid POSIX sh bracket-escaping
+# issues with sed's character classes across different /bin/sh implementations.
 PORT="${PORT:-80}"
 if [ -f /etc/nginx/conf.d/default.conf ]; then
-    sed -i "s/listen 80;/listen ${PORT};/g" /etc/nginx/conf.d/default.conf
-    sed -i "s/listen \[::\]:80;/listen \[::\]:${PORT};/g" /etc/nginx/conf.d/default.conf
+    # Replace every listen directive that references port 80 with $PORT.
+    # Using plain string replacement (no regex special chars) for reliability.
+    sed -i "s|listen 80;|listen ${PORT};|g" /etc/nginx/conf.d/default.conf
+    sed -i "s|listen \[::\]:80;|listen [::]:${PORT};|g" /etc/nginx/conf.d/default.conf
 fi
 
 # 2. Ensure runtime storage directories exist with correct permissions
