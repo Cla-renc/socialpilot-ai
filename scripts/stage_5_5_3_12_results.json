@@ -1,0 +1,105 @@
+{
+    "timestamp": "2026-11-22T12:04:28+00:00",
+    "stage": "5.5.3.12 \u2014 Production Root Homepage HTTP 500 Diagnostic Audit",
+    "mode": "STRICT READ-ONLY",
+    "health_endpoints": {
+        "up": {
+            "path": "\/up",
+            "http_status": 200,
+            "content_type": "text\/html; charset=utf-8",
+            "is_healthy": true,
+            "snippet": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\n    <titl"
+        },
+        "health": {
+            "path": "\/api\/v1\/health",
+            "http_status": 200,
+            "content_type": "application\/json",
+            "is_healthy": true,
+            "snippet": "{\"status\":\"ok\",\"timestamp\":\"2026-11-22T12:04:30.663656Z\",\"checks\":{\"database\":true,\"users\":true,\"brands\":true}}"
+        },
+        "ready": {
+            "path": "\/api\/v1\/health\/ready",
+            "http_status": 200,
+            "content_type": "application\/json",
+            "is_healthy": true,
+            "snippet": "{\"ready\":true,\"service\":\"socialpilot-ai\",\"timestamp\":\"2026-11-22T12:04:32.460779Z\"}"
+        }
+    },
+    "config_inspection": {
+        "APP_ENV": "production",
+        "APP_DEBUG": "false",
+        "APP_URL": "https:\/\/socialpilot-ai-y4lm.onrender.com",
+        "SESSION_DRIVER": "database",
+        "SESSION_LIFETIME": "120",
+        "SESSION_ENCRYPT": "false",
+        "CACHE_STORE": "database",
+        "QUEUE_CONNECTION": "database",
+        "FILESYSTEM_DISK": "local",
+        "MEDIA_STORAGE_DISK": "supabase",
+        "DB_CONNECTION": "mysql",
+        "DB_HOST": "gateway01.eu-central-1.prod.aws.tidbcloud.com",
+        "DB_PORT": "4000",
+        "DB_DATABASE": "socialpilot",
+        "MYSQL_ATTR_SSL_CA": "\/etc\/ssl\/certs\/ca-certificates.crt"
+    },
+    "app_key_analysis": {
+        "key_present": true,
+        "key_string_length": 51,
+        "has_base64_prefix": true,
+        "decoded_bytes_count": 32,
+        "is_exactly_32_bytes": true,
+        "encrypter_instantiation_success": true,
+        "encrypter_error": null
+    },
+    "staging_vs_prod_comparison": {
+        "staging_app_key_bytes": 32,
+        "staging_app_key_has_base64": true,
+        "keys_are_distinct": true,
+        "staging_session_driver": "database (default)",
+        "prod_session_driver": "database",
+        "staging_url": "https:\/\/socialpilot-staging.onrender.com",
+        "prod_url": "https:\/\/socialpilot-ai-y4lm.onrender.com",
+        "staging_root_status": 200,
+        "prod_root_status": 500
+    },
+    "blade_and_routing": {
+        "route_uri": "\/",
+        "route_name": "welcome",
+        "route_action": "\\Illuminate\\Routing\\ViewController",
+        "middleware_applied": [
+            "web"
+        ],
+        "view_name": "welcome",
+        "view_file_exists": true
+    },
+    "local_simulation": {
+        "error_class": "TypeError",
+        "error_message": "NunoMaduro\\Collision\\Handler::setOutput(): Argument #1 ($output) must be of type Symfony\\Component\\Console\\Output\\OutputInterface, null given, called in C:\\PROJECTS\\SOCIALPILOT AI\\vendor\\nunomaduro\\collision\\src\\Adapters\\Laravel\\ExceptionHandler.php on line 71",
+        "error_file": "C:\\PROJECTS\\SOCIALPILOT AI\\vendor\\nunomaduro\\collision\\src\\Handler.php",
+        "error_line": 44,
+        "trace_snippet": "#0 C:\\PROJECTS\\SOCIALPILOT AI\\vendor\\nunomaduro\\collision\\src\\Adapters\\Laravel\\ExceptionHandler.php(71): NunoMaduro\\Collision\\Handler->setOutput(NULL)\n#1 C:\\PROJECTS\\SOCIALPILOT AI\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Console\\Kernel.php(666): NunoMaduro\\Collision\\Adapters\\Laravel\\ExceptionHandler->renderForConsole(NULL, Object(BadMethodCallException))\n#2 C:\\PROJECTS\\SOCIALPILOT AI\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Console\\Kernel.php(202): Illuminate\\Foundation\\Cons"
+    },
+    "database_tables": {
+        "sessions_table_exists": true,
+        "sessions_columns": [
+            "id",
+            "user_id",
+            "ip_address",
+            "user_agent",
+            "payload",
+            "last_activity"
+        ],
+        "cache_table_exists": true,
+        "cache_columns": [
+            "key",
+            "value",
+            "expiration"
+        ],
+        "cache_locks_table_exists": true,
+        "cache_locks_columns": [
+            "key",
+            "owner",
+            "expiration"
+        ]
+    }
+}

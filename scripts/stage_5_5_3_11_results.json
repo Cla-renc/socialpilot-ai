@@ -1,0 +1,98 @@
+{
+    "timestamp": "2026-11-22T11:51:18+00:00",
+    "stage": "5.5.3.11 \u2014 Production Deployment Verification & Post-Deployment Audit",
+    "mode": "STRICT READ-ONLY",
+    "git_commit_expected": "7cbd0bc",
+    "service_url": "https:\/\/socialpilot-ai-y4lm.onrender.com",
+    "service_name": "socialpilot-ai",
+    "http_endpoints": {
+        "root": {
+            "path": "\/",
+            "url": "https:\/\/socialpilot-ai-y4lm.onrender.com\/",
+            "http_status": 500,
+            "content_type": "text\/html; charset=utf-8",
+            "origin_server_header": "nginx\/1.22.1",
+            "server_header": "cloudflare",
+            "is_nginx_welcome": false,
+            "source_detected": "Laravel Application (Laravel 500 error page)",
+            "body_length": 6665,
+            "body_snippet": "<!DOCTYPE html>\n<html lang=\"en\">\n    <head>\n        <meta charset=\"utf-8\">\n        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\n        <title>Server Error<\/title>\n\n        <style>\n            \/*! normalize.css v8.0.1 | MIT License | github.com\/necolas\/normalize.css *\/html{l"
+        },
+        "up": {
+            "path": "\/up",
+            "url": "https:\/\/socialpilot-ai-y4lm.onrender.com\/up",
+            "http_status": 200,
+            "content_type": "text\/html; charset=utf-8",
+            "origin_server_header": "nginx\/1.22.1",
+            "server_header": "cloudflare",
+            "is_nginx_welcome": false,
+            "source_detected": "Laravel Application (\/up health view)",
+            "body_length": 1834,
+            "body_snippet": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\n    <title>SocialPilot AI<\/title>\n\n    <!-- Fonts -->\n    <link rel=\"preconnect\" href=\"https:\/\/fonts.bunny.net\">\n    <link href=\"https:\/\/fonts.bunny.net\/css?fa"
+        },
+        "health": {
+            "path": "\/api\/v1\/health",
+            "url": "https:\/\/socialpilot-ai-y4lm.onrender.com\/api\/v1\/health",
+            "http_status": 200,
+            "content_type": "application\/json",
+            "origin_server_header": "nginx\/1.22.1",
+            "server_header": "cloudflare",
+            "is_nginx_welcome": false,
+            "source_detected": "Laravel Application (API JSON Controller)",
+            "body_length": 111,
+            "body_snippet": "{\"status\":\"ok\",\"timestamp\":\"2026-11-22T11:51:20.147832Z\",\"checks\":{\"database\":true,\"users\":true,\"brands\":true}}"
+        },
+        "ready": {
+            "path": "\/api\/v1\/health\/ready",
+            "url": "https:\/\/socialpilot-ai-y4lm.onrender.com\/api\/v1\/health\/ready",
+            "http_status": 200,
+            "content_type": "application\/json",
+            "origin_server_header": "nginx\/1.22.1",
+            "server_header": "cloudflare",
+            "is_nginx_welcome": false,
+            "source_detected": "Laravel Application (API JSON Controller)",
+            "body_length": 83,
+            "body_snippet": "{\"ready\":true,\"service\":\"socialpilot-ai\",\"timestamp\":\"2026-11-22T11:51:21.061647Z\"}"
+        }
+    },
+    "database_verification": {
+        "current_user": "AZDARrqgy4MBFGE.prod_app@%",
+        "current_database": "socialpilot",
+        "user_is_prod_app": true,
+        "database_is_socialpilot": true,
+        "tls_cipher": "TLS_AES_128_GCM_SHA256",
+        "tls_active": true,
+        "table_count": 59,
+        "table_count_valid": true,
+        "migration_count": 29,
+        "migration_count_valid": true,
+        "local_migration_files_count": 29,
+        "pending_migrations_count": 0,
+        "pending_migrations": [],
+        "no_pending_migrations": true
+    },
+    "security_verification": {
+        "app_env": "production",
+        "app_env_is_production": true,
+        "app_debug": "false",
+        "app_debug_is_false": true,
+        "db_host": "gateway01.eu-central-1.prod.aws.tidbcloud.com",
+        "db_database": "socialpilot",
+        "db_username_masked": "AZDARrqg...prod_app",
+        "no_staging_database": true,
+        "no_staging_user": true
+    },
+    "nginx_routing_verification": {
+        "nginx_welcome_page_absent": true,
+        "laravel_up_functional": true,
+        "api_health_functional": true,
+        "api_ready_functional": true,
+        "root_routing_to_laravel": true
+    },
+    "git_verification": {
+        "head_commit": "7cbd0bca529c112eaa9dd536414ee36ad691e5cc",
+        "head_commit_short": "7cbd0bc",
+        "commit_matches_7cbd0bc": true,
+        "commit_summary": "commit 7cbd0bca529c112eaa9dd536414ee36ad691e5cc\nAuthor: Clarence <yaaclarence@gmail.com>\nDate:   Sun Nov 22 14:09:39 2026 +0300\n\n    fix(nginx): remove debian default site and set laravel conf as default_server\n\n Dockerfile.unified          | 1 +\n docker\/docker-entrypoint.sh | 8 +++++---\n docker\/nginx\/default.conf   | 4 ++--\n 3 files changed, 8 insertions(+), 5 deletions(-)\n"
+    }
+}
