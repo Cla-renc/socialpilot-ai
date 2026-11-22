@@ -1,0 +1,22 @@
+{
+    "timestamp": "2026-11-22T08:16:02+00:00",
+    "stage": "5.5.3.7 \u2014 Production Environment Configuration Preparation & Authorization Gate",
+    "mode": "STRICT READ-ONLY",
+    "db_user": "AZDARrqgy4MBFGE.prod_app@%",
+    "db_name": "socialpilot",
+    "db_tls": "TLS_AES_128_GCM_SHA256",
+    "table_count": 59,
+    "migration_count": 29,
+    "ddl_denied": true,
+    "staging_denied": true,
+    "test_denied": true,
+    "storage": {
+        "disk": "supabase",
+        "driver": "s3",
+        "bucket": "media",
+        "region": "eu-west-1",
+        "endpoint": "https:\/\/vznosyrvokaenrqabalr.storage.supabase.co\/storage\/v1\/s3",
+        "use_path_style_endpoint": true,
+        "url": "https:\/\/vznosyrvokaenrqabalr.supabase.co\/storage\/v1\/object\/public\/media"
+    }
+}

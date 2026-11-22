@@ -1,0 +1,362 @@
+{
+    "timestamp": "2026-11-22T07:34:05+00:00",
+    "mode": "READ-ONLY AUDIT \u2014 NO MUTATIONS",
+    "admin_identity": {
+        "current_user": "AZDARrqgy4MBFGE.root@%",
+        "database": "socialpilot_migration_test"
+    },
+    "target_database": "socialpilot",
+    "production_migrations_count": 28,
+    "production_migrations": [
+        {
+            "id": 1,
+            "migration": "0001_01_01_000000_create_users_table",
+            "batch": 1
+        },
+        {
+            "id": 2,
+            "migration": "0001_01_01_000001_create_cache_table",
+            "batch": 1
+        },
+        {
+            "id": 3,
+            "migration": "0001_01_01_000002_create_jobs_table",
+            "batch": 1
+        },
+        {
+            "id": 4,
+            "migration": "2026_11_09_161931_create_brands_table",
+            "batch": 1
+        },
+        {
+            "id": 5,
+            "migration": "2026_11_09_161932_create_brand_settings_table",
+            "batch": 1
+        },
+        {
+            "id": 6,
+            "migration": "2026_11_09_161933_create_social_accounts_table",
+            "batch": 1
+        },
+        {
+            "id": 7,
+            "migration": "2026_11_09_161934_create_social_account_tokens_table",
+            "batch": 1
+        },
+        {
+            "id": 8,
+            "migration": "2026_11_09_161935_create_plans_table",
+            "batch": 1
+        },
+        {
+            "id": 9,
+            "migration": "2026_11_09_161936_create_subscriptions_table",
+            "batch": 1
+        },
+        {
+            "id": 10,
+            "migration": "2026_11_09_170457_create_personal_access_tokens_table",
+            "batch": 1
+        },
+        {
+            "id": 11,
+            "migration": "2026_11_09_171000_create_brand_content_drafts_table",
+            "batch": 1
+        },
+        {
+            "id": 12,
+            "migration": "2026_11_09_180000_create_brand_posts_table",
+            "batch": 1
+        },
+        {
+            "id": 13,
+            "migration": "2026_11_09_181000_create_brand_analytics_table",
+            "batch": 1
+        },
+        {
+            "id": 14,
+            "migration": "2026_11_09_182000_create_campaigns_table",
+            "batch": 1
+        },
+        {
+            "id": 15,
+            "migration": "2026_11_09_182001_add_campaign_id_to_brand_posts_table",
+            "batch": 1
+        },
+        {
+            "id": 16,
+            "migration": "2026_11_09_183000_create_brand_members_table",
+            "batch": 1
+        },
+        {
+            "id": 17,
+            "migration": "2026_11_09_183001_create_brand_approval_requests_table",
+            "batch": 1
+        },
+        {
+            "id": 18,
+            "migration": "2026_11_10_211500_add_terms_acceptance_to_users_table",
+            "batch": 1
+        },
+        {
+            "id": 19,
+            "migration": "2026_11_11_150000_extend_brand_profiles_and_social_tokens",
+            "batch": 1
+        },
+        {
+            "id": 20,
+            "migration": "2026_11_12_085000_create_notifications_table",
+            "batch": 1
+        },
+        {
+            "id": 21,
+            "migration": "2026_11_12_120000_repair_dashboard_notifications_and_add_agent_executions",
+            "batch": 1
+        },
+        {
+            "id": 39080,
+            "migration": "2026_11_13_090000_create_trend_intelligence_tables",
+            "batch": 1
+        },
+        {
+            "id": 39081,
+            "migration": "2026_11_13_093000_add_content_angle_status_to_trending_topics",
+            "batch": 1
+        },
+        {
+            "id": 39082,
+            "migration": "2026_11_13_131818_add_content_generation_fields_and_tables",
+            "batch": 1
+        },
+        {
+            "id": 39083,
+            "migration": "2026_11_13_200000_create_media_generation_tables",
+            "batch": 1
+        },
+        {
+            "id": 39084,
+            "migration": "2026_11_13_230000_create_scheduling_and_autopilot_tables",
+            "batch": 1
+        },
+        {
+            "id": 39085,
+            "migration": "2026_11_14_100000_create_publishing_agent_tables",
+            "batch": 1
+        },
+        {
+            "id": 39086,
+            "migration": "2026_11_14_150000_create_analytics_and_ai_optimization_tables",
+            "batch": 1
+        }
+    ],
+    "staging_migrations_count": 29,
+    "staging_migrations": [
+        {
+            "id": 1,
+            "migration": "0001_01_01_000000_create_users_table",
+            "batch": 1
+        },
+        {
+            "id": 2,
+            "migration": "0001_01_01_000001_create_cache_table",
+            "batch": 1
+        },
+        {
+            "id": 3,
+            "migration": "0001_01_01_000002_create_jobs_table",
+            "batch": 1
+        },
+        {
+            "id": 4,
+            "migration": "2026_11_09_161931_create_brands_table",
+            "batch": 1
+        },
+        {
+            "id": 5,
+            "migration": "2026_11_09_161932_create_brand_settings_table",
+            "batch": 1
+        },
+        {
+            "id": 6,
+            "migration": "2026_11_09_161933_create_social_accounts_table",
+            "batch": 1
+        },
+        {
+            "id": 7,
+            "migration": "2026_11_09_161934_create_social_account_tokens_table",
+            "batch": 1
+        },
+        {
+            "id": 8,
+            "migration": "2026_11_09_161935_create_plans_table",
+            "batch": 1
+        },
+        {
+            "id": 9,
+            "migration": "2026_11_09_161936_create_subscriptions_table",
+            "batch": 1
+        },
+        {
+            "id": 10,
+            "migration": "2026_11_09_170457_create_personal_access_tokens_table",
+            "batch": 1
+        },
+        {
+            "id": 11,
+            "migration": "2026_11_09_171000_create_brand_content_drafts_table",
+            "batch": 1
+        },
+        {
+            "id": 12,
+            "migration": "2026_11_09_180000_create_brand_posts_table",
+            "batch": 1
+        },
+        {
+            "id": 13,
+            "migration": "2026_11_09_181000_create_brand_analytics_table",
+            "batch": 1
+        },
+        {
+            "id": 14,
+            "migration": "2026_11_09_182000_create_campaigns_table",
+            "batch": 1
+        },
+        {
+            "id": 15,
+            "migration": "2026_11_09_182001_add_campaign_id_to_brand_posts_table",
+            "batch": 1
+        },
+        {
+            "id": 16,
+            "migration": "2026_11_09_183000_create_brand_members_table",
+            "batch": 1
+        },
+        {
+            "id": 17,
+            "migration": "2026_11_09_183001_create_brand_approval_requests_table",
+            "batch": 1
+        },
+        {
+            "id": 18,
+            "migration": "2026_11_10_211500_add_terms_acceptance_to_users_table",
+            "batch": 1
+        },
+        {
+            "id": 19,
+            "migration": "2026_11_11_150000_extend_brand_profiles_and_social_tokens",
+            "batch": 1
+        },
+        {
+            "id": 20,
+            "migration": "2026_11_12_085000_create_notifications_table",
+            "batch": 1
+        },
+        {
+            "id": 21,
+            "migration": "2026_11_12_120000_repair_dashboard_notifications_and_add_agent_executions",
+            "batch": 1
+        },
+        {
+            "id": 22,
+            "migration": "2026_11_13_090000_create_trend_intelligence_tables",
+            "batch": 1
+        },
+        {
+            "id": 23,
+            "migration": "2026_11_13_093000_add_content_angle_status_to_trending_topics",
+            "batch": 1
+        },
+        {
+            "id": 24,
+            "migration": "2026_11_13_131818_add_content_generation_fields_and_tables",
+            "batch": 1
+        },
+        {
+            "id": 35801,
+            "migration": "2026_11_13_200000_create_media_generation_tables",
+            "batch": 2
+        },
+        {
+            "id": 65801,
+            "migration": "2026_11_13_230000_create_scheduling_and_autopilot_tables",
+            "batch": 3
+        },
+        {
+            "id": 65802,
+            "migration": "2026_11_14_100000_create_publishing_agent_tables",
+            "batch": 4
+        },
+        {
+            "id": 65803,
+            "migration": "2026_11_14_150000_create_analytics_and_ai_optimization_tables",
+            "batch": 5
+        },
+        {
+            "id": 65804,
+            "migration": "2026_11_16_200000_add_integrity_constraints_to_content_generation_tables",
+            "batch": 6
+        }
+    ],
+    "local_migration_files_count": 29,
+    "local_migration_files": [
+        "0001_01_01_000000_create_users_table",
+        "0001_01_01_000001_create_cache_table",
+        "0001_01_01_000002_create_jobs_table",
+        "2026_11_09_161931_create_brands_table",
+        "2026_11_09_161932_create_brand_settings_table",
+        "2026_11_09_161933_create_social_accounts_table",
+        "2026_11_09_161934_create_social_account_tokens_table",
+        "2026_11_09_161935_create_plans_table",
+        "2026_11_09_161936_create_subscriptions_table",
+        "2026_11_09_170457_create_personal_access_tokens_table",
+        "2026_11_09_171000_create_brand_content_drafts_table",
+        "2026_11_09_180000_create_brand_posts_table",
+        "2026_11_09_181000_create_brand_analytics_table",
+        "2026_11_09_182000_create_campaigns_table",
+        "2026_11_09_182001_add_campaign_id_to_brand_posts_table",
+        "2026_11_09_183000_create_brand_members_table",
+        "2026_11_09_183001_create_brand_approval_requests_table",
+        "2026_11_10_211500_add_terms_acceptance_to_users_table",
+        "2026_11_11_150000_extend_brand_profiles_and_social_tokens",
+        "2026_11_12_085000_create_notifications_table",
+        "2026_11_12_120000_repair_dashboard_notifications_and_add_agent_executions",
+        "2026_11_13_090000_create_trend_intelligence_tables",
+        "2026_11_13_093000_add_content_angle_status_to_trending_topics",
+        "2026_11_13_131818_add_content_generation_fields_and_tables",
+        "2026_11_13_200000_create_media_generation_tables",
+        "2026_11_13_230000_create_scheduling_and_autopilot_tables",
+        "2026_11_14_100000_create_publishing_agent_tables",
+        "2026_11_14_150000_create_analytics_and_ai_optimization_tables",
+        "2026_11_16_200000_add_integrity_constraints_to_content_generation_tables"
+    ],
+    "pending_in_production": [
+        "2026_11_16_200000_add_integrity_constraints_to_content_generation_tables"
+    ],
+    "pending_count": 1,
+    "production_tls_cipher": "TLS_AES_128_GCM_SHA256",
+    "production_table_count": 59,
+    "table_exists": {
+        "brand_content_drafts": true,
+        "content_revisions": true
+    },
+    "table_indexes": {
+        "brand_content_drafts": [
+            "PRIMARY",
+            "brand_content_drafts_user_id_foreign",
+            "brand_content_drafts_brand_id_foreign",
+            "brand_content_drafts_brand_id_status_index",
+            "brand_content_drafts_brand_id_status_index",
+            "brand_content_drafts_is_ai_generated_index",
+            "brand_content_drafts_generation_job_id_foreign"
+        ],
+        "content_revisions": [
+            "PRIMARY",
+            "content_revisions_draft_id_foreign",
+            "content_revisions_user_id_foreign",
+            "content_revisions_draft_id_revision_number_index",
+            "content_revisions_draft_id_revision_number_index"
+        ]
+    },
+    "duplicate_generation_job_ids": 0,
+    "duplicate_content_revisions": 0
+}

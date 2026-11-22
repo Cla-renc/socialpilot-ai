@@ -1,0 +1,47 @@
+{
+    "timestamp": "2026-11-22T08:05:31+00:00",
+    "stage": "5.5.3.5 \u2014 Authorized Production Migration Execution",
+    "executed_command": "php artisan migrate --database=tidb_prod_migrator --path=database\/migrations\/2026_11_16_200000_add_integrity_constraints_to_content_generation_tables.php --step --force",
+    "execution_exit_code": 0,
+    "execution_output": "INFO  Running migrations.\n2026_11_16_200000_add_integrity_constraints_to_content_generation_tables ... 3s DONE",
+    "execution_duration_seconds": 3.12,
+    "post_execution_checks": {
+        "1_base_table_count": 59,
+        "1_base_table_match": true,
+        "2_migration_count": 29,
+        "2_migration_count_match": true,
+        "3_target_migration_count": 1,
+        "3_target_record_details": {
+            "id": 1232128,
+            "migration": "2026_11_16_200000_add_integrity_constraints_to_content_generation_tables",
+            "batch": 2
+        },
+        "3_target_migration_single": true,
+        "4_bcd_unique_index_exists": true,
+        "4_bcd_unique_index_non_unique": 0,
+        "4_bcd_unique_index_column": "generation_job_id",
+        "4_bcd_index_valid": true,
+        "5_cr_unique_index_exists": true,
+        "5_cr_columns": [
+            "draft_id",
+            "revision_number"
+        ],
+        "5_cr_non_unique": 0,
+        "5_cr_index_valid": true,
+        "6_both_indexes_valid": true,
+        "7_post_data_counts": {
+            "users": 1,
+            "brands": 1,
+            "brand_content_drafts": 0,
+            "content_revisions": 0
+        },
+        "7_data_intact": true,
+        "8_no_unexpected_tables": true,
+        "9_staging_migrations_count": 29,
+        "9_staging_untouched": true,
+        "10_post_user": "AZDARrqgy4MBFGE.prod_migrator@%",
+        "10_post_db": "socialpilot",
+        "10_post_tls": "TLS_AES_128_GCM_SHA256"
+    },
+    "final_decision": "A"
+}

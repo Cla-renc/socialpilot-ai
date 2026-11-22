@@ -1,0 +1,15 @@
+{
+    "account": "AZDARrqgy4MBFGE.prod_app",
+    "database": "socialpilot",
+    "host": "%",
+    "tls_cipher": "TLS_AES_128_GCM_SHA256",
+    "grants": [
+        "GRANT USAGE ON *.* TO 'AZDARrqgy4MBFGE.prod_app'@'%'",
+        "GRANT SELECT,INSERT,UPDATE,DELETE ON `socialpilot`.* TO 'AZDARrqgy4MBFGE.prod_app'@'%'"
+    ],
+    "privileges_verified": [],
+    "staging_isolated": true,
+    "migration_test_isolated": true,
+    "ddl_denied": true,
+    "status": "SUCCESS"
+}

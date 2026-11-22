@@ -1,0 +1,51 @@
+{
+    "timestamp": "2026-11-22T07:48:52+00:00",
+    "mode": "AUTHORIZED PROVISIONING \u2014 prod_migrator",
+    "target_account": "AZDARrqgy4MBFGE.prod_migrator",
+    "target_database": "socialpilot",
+    "pre_check": {
+        "admin_user": "AZDARrqgy4MBFGE.root@%",
+        "cluster_host": "localhost",
+        "tidb_version": "8.0.11-TiDB-v8.5.3-serverless",
+        "identity_guard": "PASS",
+        "socialpilot_exists": "PASS",
+        "prod_migrator_pre_exists": "PASS \u2014 does not exist",
+        "prod_app_grants_before": [
+            "GRANT USAGE ON *.* TO 'AZDARrqgy4MBFGE.prod_app'@'%'",
+            "GRANT SELECT,INSERT,UPDATE,DELETE ON `socialpilot`.* TO 'AZDARrqgy4MBFGE.prod_app'@'%'"
+        ],
+        "prod_app_baseline": "PASS \u2014 matches 5.5.3.1 specification",
+        "admin_tls": "TLS_AES_128_GCM_SHA256"
+    },
+    "credential_generated": true,
+    "credential_stored_in": ".env.staging.local (gitignored)",
+    "account_creation": "SUCCESS",
+    "grant": "SUCCESS \u2014 SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,REFERENCES,ALTER,INDEX ON socialpilot.*",
+    "admin_show_grants": [
+        "GRANT USAGE ON *.* TO 'AZDARrqgy4MBFGE.prod_migrator'@'%'",
+        "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,REFERENCES,ALTER,INDEX ON `socialpilot`.* TO 'AZDARrqgy4MBFGE.prod_migrator'@'%'"
+    ],
+    "grant_validation": {
+        "has_usage_on_global": true,
+        "has_nine_privileges": true,
+        "has_grant_option": false,
+        "has_global_privileges": false,
+        "grant_count": 2,
+        "exactly_two_grant_lines": true
+    },
+    "admin_grant_verification": "PASS",
+    "new_account_identity": {
+        "current_user": "AZDARrqgy4MBFGE.prod_migrator@%",
+        "database": "socialpilot"
+    },
+    "new_account_identity_check": "PASS",
+    "new_account_tls": "TLS_AES_128_GCM_SHA256",
+    "new_account_select_socialpilot": "PASS \u2014 28 migrations rows",
+    "staging_isolation": "PASS \u2014 access denied",
+    "migration_test_isolation": "PASS \u2014 access denied",
+    "prod_app_grants_after": [
+        "GRANT USAGE ON *.* TO 'AZDARrqgy4MBFGE.prod_app'@'%'",
+        "GRANT SELECT,INSERT,UPDATE,DELETE ON `socialpilot`.* TO 'AZDARrqgy4MBFGE.prod_app'@'%'"
+    ],
+    "prod_app_unchanged": "PASS \u2014 grants identical before and after"
+}

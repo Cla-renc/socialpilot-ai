@@ -1,0 +1,22 @@
+{
+    "timestamp": "2026-11-22T07:56:58+00:00",
+    "stage": "5.5.3.4 \u2014 Migration Execution Readiness & Pre-Execution Gate",
+    "mode": "READ-ONLY GATE \u2014 NO MUTATIONS PERFORMED",
+    "authenticated_user": "AZDARrqgy4MBFGE.prod_migrator@%",
+    "active_database": "socialpilot",
+    "identity_check": "PASS",
+    "tls_cipher": "TLS_AES_128_GCM_SHA256",
+    "tls_check": "PASS",
+    "baseline_table_count": 59,
+    "baseline_migration_count": 28,
+    "latest_batch": 1,
+    "target_migration": "2026_11_16_200000_add_integrity_constraints_to_content_generation_tables",
+    "is_pending": true,
+    "preflight_duplicate_job_ids": 0,
+    "preflight_duplicate_revisions": 0,
+    "preflight_status": "PASS",
+    "index_conflict_bcd": false,
+    "index_conflict_cr": false,
+    "staging_isolation": "PASS \u2014 access denied",
+    "migration_test_isolation": "PASS \u2014 access denied"
+}

@@ -1,0 +1,13 @@
+{
+    "upload": {
+        "status": "PASS",
+        "asset_id": 1,
+        "storage_disk": "supabase",
+        "storage_path": "media\/30001\/upload_6b029649256ac6.30684006.jpg",
+        "public_url": "https:\/\/vznosyrvokaenrqabalr.supabase.co\/storage\/v1\/object\/public\/media\/media\/30001\/upload_6b029649256ac6.30684006.jpg"
+    },
+    "metadata_persistence": "PASS",
+    "public_url_accessible": "PASS",
+    "api_retrieval": "PASS",
+    "api_deletion": "PASS"
+}
