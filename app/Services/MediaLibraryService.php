@@ -105,6 +105,10 @@ class MediaLibraryService
             $disk
         );
 
+        if (! $path) {
+            throw new \RuntimeException('Failed to store media file.');
+        }
+
         return MediaAsset::create([
             'user_id'           => $user->id,
             'brand_id'          => $brand->id,

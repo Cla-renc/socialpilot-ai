@@ -1,0 +1,14 @@
+{
+    "disk": "supabase",
+    "endpoint": "https:\/\/vznosyrvokaenrqabalr.storage.supabase.co\/storage\/v1\/s3",
+    "bucket": "media",
+    "connection": true,
+    "upload": true,
+    "path": "probes\/probe_1795330143_891638ad.txt",
+    "retrieval": true,
+    "content_match": true,
+    "public_url": "https:\/\/vznosyrvokaenrqabalr.supabase.co\/storage\/v1\/object\/public\/media\/probes\/probe_1795330143_891638ad.txt",
+    "public_http_status": 200,
+    "deletion": true,
+    "deletion_verified": true
+}

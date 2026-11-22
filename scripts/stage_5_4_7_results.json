@@ -1,0 +1,69 @@
+{
+    "environment": "Render staging",
+    "base_url": "https:\/\/socialpilot-staging.onrender.com",
+    "timestamp": "2026-11-18T21:12:45+00:00",
+    "database": "socialpilot_staging",
+    "user": "AZDARrqgy4MBFGE.staging_app@%",
+    "results": {
+        "P-01": {
+            "status": "PASS",
+            "http_code": 200,
+            "details": "Authentication successful for user ID 1. Bearer token obtained."
+        },
+        "P-02": {
+            "status": "PASS",
+            "http_code": "POST: 201, GET: 200",
+            "brand_id": 1,
+            "details": "Brand '[STAGING] Brand Alpha' created and verified via GET."
+        },
+        "P-03": {
+            "status": "PASS",
+            "http_code": "POST: 201, GET: 200",
+            "draft_id": 1,
+            "details": "Draft created and retrieved successfully under Brand ID 1."
+        },
+        "P-04": {
+            "status": "PASS",
+            "http_code": 201,
+            "job_id": 1,
+            "provider": "internal",
+            "details": "AI content generated synchronously via zero-cost internal provider (Job ID 1)."
+        },
+        "P-05": {
+            "status": "PASS",
+            "http_code": "POST: 201, GET: 200",
+            "scheduled_post_id": 1,
+            "post_status": "cancelled",
+            "details": "Scheduled post created for 2028-12-31, placed into safe state ('cancelled')."
+        },
+        "P-06": {
+            "status": "PASS",
+            "http_code": "POST: 201, GET: 200",
+            "rule_id": 1,
+            "is_active": false,
+            "details": "Autopilot rule created in disabled state (is_active: false) and verified."
+        },
+        "P-07": {
+            "status": "PASS",
+            "cleanup_log": {
+                "rule": "HTTP 200",
+                "scheduled_post": "HTTP 200",
+                "ai_draft": "HTTP 200",
+                "draft": "HTTP 200",
+                "brand": "HTTP 200"
+            },
+            "verified_deleted_brand_http": 404,
+            "user_intact": true
+        }
+    },
+    "created_ids": {
+        "brand_id": 1,
+        "draft_id": 1,
+        "ai_job_id": 1,
+        "ai_draft_id": 2,
+        "scheduled_post_id": 1,
+        "rule_id": 1
+    },
+    "tables_count": 59,
+    "migrations_count": 29
+}
