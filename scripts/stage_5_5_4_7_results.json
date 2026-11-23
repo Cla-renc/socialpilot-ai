@@ -1,0 +1,104 @@
+{
+    "timestamp": "2026-11-23T10:37:09+00:00",
+    "stage": "5.5.4.7 \u2014 T-04 \/ T-05 Controlled Production Brand Creation & Overview Execution",
+    "mode": "CONTROLLED_SYNTHETIC_BRAND_CYCLE",
+    "pre_execution_gate": {
+        "database_is_socialpilot": true,
+        "user_is_prod_app": true,
+        "tls_active": true,
+        "initial_user_count": 1,
+        "initial_brand_count": 1,
+        "user_30001_present": true,
+        "brand_30001_owned_by_30001": true,
+        "brand_30001_draft": true,
+        "all_preconditions_met": true
+    },
+    "test_sequence": {
+        "T-04.1": {
+            "description": "Brand creation validation rejection on empty payload",
+            "http_status": 422,
+            "expected": 422,
+            "passed": true,
+            "errors_detected": [
+                "name"
+            ]
+        },
+        "T-04.2": {
+            "description": "Synthetic brand creation",
+            "http_status": 201,
+            "expected": 201,
+            "passed": true,
+            "brand_id": 91642,
+            "brand_status": "draft",
+            "settings_created": true
+        },
+        "T-05.1": {
+            "description": "Brand listing tenant isolation",
+            "http_status": 200,
+            "expected": 200,
+            "passed": true,
+            "returned_brand_ids": [
+                91642
+            ],
+            "synthetic_brand_present": true,
+            "brand_30001_absent": true
+        },
+        "T-05.2": {
+            "description": "Synthetic brand detail retrieval",
+            "http_status": 200,
+            "expected": 200,
+            "passed": true
+        },
+        "T-05.3": {
+            "description": "Cross-tenant brand isolation probe (Brand 30001)",
+            "http_status": 403,
+            "expected": 403,
+            "passed": true
+        },
+        "T-05.4": {
+            "description": "Brand overview fetch",
+            "http_status": 200,
+            "expected": 200,
+            "passed": true,
+            "overview_stats": {
+                "brand_id": 91642,
+                "status": "draft",
+                "connected_accounts": 0,
+                "content_drafts": 0,
+                "posts": 0,
+                "campaigns": 0
+            }
+        },
+        "T-05.5": {
+            "description": "Cross-tenant overview isolation probe (Brand 30001)",
+            "http_status": 403,
+            "expected": 403,
+            "passed": true
+        }
+    },
+    "teardown": {
+        "status": "SUCCESS",
+        "brand_api_deleted": true,
+        "brand_in_db": false,
+        "settings_in_db": false,
+        "notifications_deleted": 1,
+        "tokens_deleted": 1,
+        "user_deleted": 1
+    },
+    "post_verification": {
+        "final_user_count": 1,
+        "final_brand_count": 1,
+        "final_settings_count": 0,
+        "remaining_tokens": 0,
+        "user_30001_intact": true,
+        "brand_30001_intact": true,
+        "health_endpoints": {
+            "up": 200,
+            "health": 200,
+            "ready": 200
+        },
+        "all_verified": true
+    },
+    "final_decision": "A \u2014 PASS",
+    "decision_rationale": "All brand creation, detail, listing, overview, and cross-tenant isolation tests passed with exact expected HTTP status codes; synthetic brand and user were completely removed; production baseline (1 user, 1 brand, 0 tokens, 0 settings) was fully restored; all health endpoints green."
+}

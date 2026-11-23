@@ -1,0 +1,100 @@
+{
+    "timestamp": "2026-11-23T10:07:31+00:00",
+    "stage": "5.5.4.5 \u2014 T-02 \/ T-03 Controlled Production Authentication Execution",
+    "mode": "CONTROLLED_SYNTHETIC_AUTH_CYCLE",
+    "pre_execution_gate": {
+        "database_is_socialpilot": true,
+        "user_is_prod_app": true,
+        "tls_active": true,
+        "initial_user_count": 1,
+        "user_30001_present": true,
+        "brand_30001_owned_by_30001": true,
+        "brand_30001_draft": true,
+        "all_preconditions_met": true
+    },
+    "test_sequence": {
+        "T-02.1": {
+            "description": "Registration validation rejection on empty payload",
+            "http_status": 422,
+            "expected": 422,
+            "passed": true,
+            "errors_detected": [
+                "name",
+                "email",
+                "password",
+                "terms"
+            ]
+        },
+        "T-02.2": {
+            "description": "Synthetic user registration",
+            "http_status": 201,
+            "expected": 201,
+            "passed": true,
+            "user_id": 224308,
+            "email": "prod-audit-test-rdlgryvewxj1@example.invalid"
+        },
+        "T-02.3": {
+            "description": "Authenticated identity profile fetch",
+            "http_status": 200,
+            "expected": 200,
+            "passed": true,
+            "verified_user_id": 224308
+        },
+        "T-02.4": {
+            "description": "Login with valid synthetic credentials",
+            "http_status": 200,
+            "expected": 200,
+            "passed": true
+        },
+        "T-02.5": {
+            "description": "Login rejection with invalid credentials",
+            "http_status": 422,
+            "expected": 422,
+            "passed": true
+        },
+        "T-02.6": {
+            "description": "Unauthenticated access rejection",
+            "http_status": 401,
+            "expected": 401,
+            "passed": true
+        },
+        "T-02.7": {
+            "description": "Tenant isolation enforcement on Brand 30001",
+            "http_status": 403,
+            "expected": 403,
+            "passed": true
+        },
+        "T-02.8": {
+            "description": "Logout and token revocation",
+            "http_status": 200,
+            "expected": 200,
+            "passed": true
+        },
+        "T-02.9": {
+            "description": "Token revocation verification",
+            "http_status": 401,
+            "expected": 401,
+            "passed": true
+        }
+    },
+    "teardown": {
+        "status": "SUCCESS",
+        "tokens_deleted": 1,
+        "user_deleted": 1,
+        "deleted_user_id": 224308
+    },
+    "post_verification": {
+        "final_user_count": 1,
+        "user_30001_intact": true,
+        "brand_30001_intact": true,
+        "remaining_tokens": 0,
+        "health_endpoints": {
+            "up": 200,
+            "health": 200,
+            "ready": 200
+        },
+        "all_verified": true
+    },
+    "final_decision": "A \u2014 PASS",
+    "decision_rationale": "All 9 authentication test steps (T-02.1 through T-02.9) passed with exact expected HTTP status codes; tenant boundary for Brand 30001 verified (HTTP 403); synthetic test account cleanly torn down; database returned to exact baseline (1 user, 1 brand, 0 tokens); all health endpoints green."
+}

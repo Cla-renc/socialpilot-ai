@@ -1,0 +1,205 @@
+{
+    "timestamp": "2026-11-23T12:37:12+00:00",
+    "stage": "5.5.4.11 \u2014 T-07 Controlled Production Post Scheduling Execution",
+    "mode": "CONTROLLED_SCHEDULING_EXECUTION",
+    "pre_execution_gate": {
+        "database": "socialpilot",
+        "db_user": "AZDARrqgy4MBFGE.prod_app@%",
+        "ssl_cipher": "TLS_AES_128_GCM_SHA256",
+        "database_is_socialpilot": true,
+        "user_is_prod_app": true,
+        "tls_active": true,
+        "baseline_counts": {
+            "users": 1,
+            "brands": 1,
+            "brand_posts": 0,
+            "scheduled_posts": 0,
+            "scheduled_post_platforms": 0,
+            "scheduled_post_media": 0,
+            "publishing_queues": 0,
+            "publishing_queue_items": 0,
+            "publishing_attempts": 0,
+            "publishing_notifications": 0,
+            "post_analytics": 0,
+            "jobs": 0,
+            "failed_jobs": 0,
+            "notifications": 0,
+            "personal_access_tokens": 0
+        },
+        "user_30001_present": true,
+        "brand_30001_present": true,
+        "brand_30001_owned_by_30001": true,
+        "brand_30001_draft": true,
+        "health_up": 200,
+        "health_api": 200,
+        "health_ready": 200,
+        "unexpected_records": [],
+        "all_preconditions_met": true
+    },
+    "synthetic_identity": {
+        "registration": {
+            "http_status": 201,
+            "expected": 201,
+            "passed": true,
+            "user_id": 314308,
+            "email": "prod-scheduling-audit-9b86f193-6691-4b49-a226-0f192d7f0ad7@example.invalid"
+        },
+        "brand_creation": {
+            "http_status": 201,
+            "expected": 201,
+            "passed": true,
+            "brand_id": 151642
+        }
+    },
+    "test_sequence": {
+        "T-07.1": {
+            "description": "Empty payload validation probe",
+            "http_status": 422,
+            "expected": 422,
+            "passed": true,
+            "db_delta_scheduled": 0,
+            "db_delta_brand_posts": 0,
+            "no_records_created": true
+        },
+        "T-07.2": {
+            "description": "Past timestamp rejection probe",
+            "past_timestamp_used": "2026-11-23T10:37:38+00:00",
+            "http_status": 422,
+            "expected": 422,
+            "passed": true,
+            "db_delta_scheduled": 0,
+            "db_delta_brand_posts": 0,
+            "no_records_created": true
+        },
+        "T-07.3": {
+            "description": "Valid future scheduled post creation",
+            "http_status": 201,
+            "expected": 201,
+            "passed": true,
+            "scheduled_post_id": 1,
+            "api_response_status": "scheduled",
+            "api_response_scheduled_at": "2027-01-01T12:00:00.000000Z",
+            "api_brand_id": 151642,
+            "db_scheduled_at_utc": "2027-01-01 12:00:00",
+            "db_timezone": "UTC",
+            "db_status": "scheduled",
+            "db_brand_id": 151642,
+            "db_user_id": 314308,
+            "db_platform": "linkedin",
+            "db_platform_social_account_id": null,
+            "db_brand_post_created": true,
+            "db_brand_post_id": 1,
+            "db_brand_post_status": "scheduled",
+            "db_delta_scheduled": 1,
+            "db_delta_platforms": 1,
+            "db_delta_brand_posts": 1,
+            "db_delta_notifications": 1,
+            "db_delta_jobs": 0,
+            "db_delta_publishing_attempts": 0,
+            "zero_jobs_dispatched": true,
+            "zero_publishing_attempts": true,
+            "correct_brand_ownership": true,
+            "timestamp_stored_as_2027": true
+        },
+        "T-07.4": {
+            "description": "Tenant-scoped scheduled-post listing",
+            "http_status": 200,
+            "expected": 200,
+            "passed": true,
+            "listed_ids": [
+                1
+            ],
+            "own_post_visible": true,
+            "brand_30001_leaked": false,
+            "total_records": 1
+        },
+        "T-07.5": {
+            "description": "Scheduled post detail fetch",
+            "http_status": 200,
+            "expected": 200,
+            "passed": true,
+            "returned_id": 1,
+            "returned_brand_id": 151642,
+            "returned_platform": "linkedin",
+            "returned_status": "scheduled",
+            "scheduled_at": "2027-01-01T12:00:00.000000Z",
+            "correct_brand": true,
+            "timestamp_in_2027": true
+        },
+        "T-07.6": {
+            "description": "Cross-tenant brand listing probe (Brand 30001)",
+            "http_status": 403,
+            "expected": 403,
+            "passed": true
+        },
+        "T-07.7": {
+            "description": "Cross-tenant/non-existent post access probe",
+            "http_status": 404,
+            "expected": "403 or 404",
+            "passed": true,
+            "probe_detail": "Attempted GET /api/v1/scheduled-posts/99999999 with synthetic token"
+        },
+        "T-07.8": {
+            "description": "Cancel synthetic scheduled post",
+            "http_status": 200,
+            "expected": 200,
+            "passed": true,
+            "api_returned_status": "cancelled",
+            "db_status": "cancelled",
+            "db_cancellation_set": true,
+            "no_publishing_attempt": true
+        }
+    },
+    "teardown": {
+        "brand_api_deletion": {
+            "http_status": 200,
+            "expected": 200,
+            "passed": true,
+            "brand_still_in_db": false,
+            "scheduled_post_still_in_db": false,
+            "scheduled_post_platforms_remaining": 0,
+            "brand_posts_remaining": 0,
+            "brand_posts_cascade_ok": true
+        },
+        "cleanup": {
+            "notifications_deleted": 2,
+            "tokens_deleted": 1,
+            "user_deleted": 1,
+            "synthetic_user_id": 314308,
+            "user_30001_safe": true
+        }
+    },
+    "post_verification": {
+        "final_counts": {
+            "users": 1,
+            "brands": 1,
+            "brand_posts": 0,
+            "scheduled_posts": 0,
+            "scheduled_post_platforms": 0,
+            "scheduled_post_media": 0,
+            "publishing_queues": 0,
+            "publishing_queue_items": 0,
+            "publishing_attempts": 0,
+            "publishing_notifications": 0,
+            "post_analytics": 0,
+            "jobs": 0,
+            "failed_jobs": 0,
+            "notifications": 0,
+            "personal_access_tokens": 0
+        },
+        "baseline_restored": true,
+        "user_30001_intact": true,
+        "brand_30001_intact": true,
+        "brand_30001_status": "draft",
+        "brand_30001_owned_by": 30001,
+        "health_endpoints": {
+            "up": 200,
+            "health": 200,
+            "ready": 200
+        },
+        "all_health_ok": true,
+        "all_verified": true
+    },
+    "final_decision": "A \u2014 PASS",
+    "decision_rationale": "All 8 T-07 test steps passed with correct HTTP status codes. Scheduled post ID 1 created for 2027-01-01T12:00:00Z with platform=linkedin and no social_account_id. No queue jobs dispatched. No publishing attempts created. Cross-tenant probes correctly returned 403/404. Post cancelled (status=cancelled). API brand deletion cascaded cleanly: brand_posts=0, platforms=0. Synthetic user, tokens, and notifications fully purged. Production database restored to exact baseline (1 user, 1 brand, 0 scheduled_posts, 0 brand_posts, 0 tokens). User 30001 and Brand 30001 intact. All health endpoints green."
+}

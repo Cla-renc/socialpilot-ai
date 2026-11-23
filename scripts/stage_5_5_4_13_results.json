@@ -1,0 +1,175 @@
+{
+    "timestamp": "2026-11-23T13:21:31+00:00",
+    "stage": "5.5.4.13 \u2014 T-08 Controlled Production Synthetic Media Execution",
+    "mode": "CONTROLLED_SYNTHETIC_MEDIA_EXECUTION",
+    "pre_execution_gate": {
+        "database": "socialpilot",
+        "db_user": "AZDARrqgy4MBFGE.prod_app@%",
+        "ssl_cipher": "TLS_AES_128_GCM_SHA256",
+        "database_is_socialpilot": true,
+        "user_is_prod_app": true,
+        "tls_active": true,
+        "baseline_counts": {
+            "users": 2,
+            "brands": 1,
+            "media_assets": 0,
+            "media_generation_jobs": 0,
+            "media_storyboards": 0,
+            "scheduled_post_media": 0,
+            "brand_content_drafts": 0,
+            "scheduled_posts": 0,
+            "publishing_attempts": 0,
+            "jobs": 0,
+            "failed_jobs": 0,
+            "notifications": 0,
+            "personal_access_tokens": 0
+        },
+        "storage_baseline_files": 0,
+        "user_30001_present": true,
+        "brand_30001_present": true,
+        "brand_30001_owned_by_30001": true,
+        "brand_30001_draft": true,
+        "user_344308_present": true,
+        "health_up": 200,
+        "health_api": 200,
+        "health_ready": 200,
+        "all_preconditions_met": true
+    },
+    "synthetic_identity": {
+        "registration": {
+            "http_status": 201,
+            "expected": 201,
+            "passed": true,
+            "user_id": 532606,
+            "email": "prod-media-audit-a2fe1b22-aeee-4c24-9ffd-5c99f460c4eb@example.invalid"
+        },
+        "brand_creation": {
+            "http_status": 201,
+            "expected": 201,
+            "passed": true,
+            "brand_id": 181642
+        }
+    },
+    "local_test_file": {
+        "filename": "prod_media_audit_a2fe1b22-aeee-4c24-9ffd-5c99f460c4eb.png",
+        "size_bytes": 68,
+        "mime_type": "image/png",
+        "valid_png": true
+    },
+    "test_sequence": {
+        "T-08.1": {
+            "description": "Upload single synthetic PNG image",
+            "http_status": 201,
+            "expected": 201,
+            "passed": true,
+            "media_id": 46185,
+            "provider": "uploaded",
+            "generation_status": "completed",
+            "storage_disk": "supabase",
+            "storage_path": "media/181642/upload_6b043df03c0a36.79886998.png",
+            "public_url": "https://vznosyrvokaenrqabalr.supabase.co/storage/v1/object/public/media/181642/upload_6b043df03c0a36.79886998.png"
+        },
+        "T-08.2": {
+            "description": "Verify database persistence of uploaded media",
+            "passed": true,
+            "db_media_id": 46185,
+            "db_user_id": 532606,
+            "db_brand_id": 181642,
+            "db_mime_type": "image/png",
+            "db_file_size": 68,
+            "db_storage_disk": "supabase",
+            "db_storage_path": "media/181642/upload_6b043df03c0a36.79886998.png",
+            "db_provider": "uploaded",
+            "db_generation_status": "completed",
+            "zero_generation_jobs": true,
+            "zero_storyboards": true
+        },
+        "T-08.3": {
+            "description": "Verify Supabase storage object existence and size",
+            "passed": true,
+            "storage_path": "media/181642/upload_6b043df03c0a36.79886998.png",
+            "object_exists": true,
+            "object_size_bytes": 68,
+            "expected_size": 68,
+            "is_under_brand_namespace": true
+        },
+        "T-08.4": {
+            "description": "Verify authenticated media retrieval via API",
+            "http_status": 200,
+            "expected": 200,
+            "passed": true,
+            "returned_id": 46185,
+            "returned_brand_id": 181642,
+            "returned_mime_type": "image/png"
+        },
+        "T-08.5": {
+            "description": "Cross-tenant media listing probe (Brand 30001)",
+            "http_status": 403,
+            "expected": 403,
+            "passed": true
+        },
+        "T-08.6": {
+            "description": "Delete synthetic media via API",
+            "http_status": 200,
+            "expected": 200,
+            "passed": true,
+            "api_message": "Media asset deleted successfully."
+        },
+        "T-08.7": {
+            "description": "Verify Supabase storage object deleted and DB row soft-deleted",
+            "passed": true,
+            "object_still_exists": false,
+            "db_record_deleted": true,
+            "db_deleted_at": "2026-11-23 13:21:59"
+        }
+    },
+    "teardown": {
+        "brand_api_deletion": {
+            "http_status": 200,
+            "passed": true,
+            "brand_in_db": false,
+            "media_in_db": 0
+        },
+        "cleanup": {
+            "media_hard_deleted": 0,
+            "notifications_del": 1,
+            "tokens_del": 1,
+            "user_deleted": 1,
+            "synth_user_id": 532606,
+            "user_30001_safe": true,
+            "user_344308_safe": true
+        }
+    },
+    "post_verification": {
+        "final_counts": {
+            "users": 2,
+            "brands": 1,
+            "media_assets": 0,
+            "media_generation_jobs": 0,
+            "media_storyboards": 0,
+            "scheduled_post_media": 0,
+            "brand_content_drafts": 0,
+            "scheduled_posts": 0,
+            "publishing_attempts": 0,
+            "jobs": 0,
+            "failed_jobs": 0,
+            "notifications": 0,
+            "personal_access_tokens": 0
+        },
+        "storage_final_count": 0,
+        "baseline_restored": true,
+        "user_30001_intact": true,
+        "brand_30001_intact": true,
+        "brand_30001_status": "draft",
+        "user_344308_intact": true,
+        "health_endpoints": {
+            "up": 200,
+            "health": 200,
+            "ready": 200
+        },
+        "all_health_ok": true,
+        "all_verified": true
+    },
+    "final_decision": "A \u2014 PASS",
+    "decision_rationale": "All 7 T-08 test steps passed with expected status codes. Synthetic 68-byte PNG uploaded to Supabase Storage (Media ID 46185). Database persistence verified (provider=uploaded, generation_status=completed). Supabase Storage object existence and exact 68-byte size verified. Authenticated retrieval succeeded (HTTP 200). Cross-tenant probe against Brand 30001 blocked (HTTP 403). API media deletion (DELETE /api/v1/media/{id}) purged the Supabase Storage object. Brand and user teardown succeeded. Database and storage returned to exact baseline (users=2, brands=1, media_assets=0, storage_files=0). User 30001, Brand 30001, and User 344308 intact. All health endpoints green."
+}

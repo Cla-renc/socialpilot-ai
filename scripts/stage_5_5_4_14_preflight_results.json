@@ -1,0 +1,540 @@
+{
+    "timestamp": "2026-11-23T13:29:32+00:00",
+    "stage": "5.5.4.14 \u2014 T-09 Dedicated Tenancy Boundary Audit Preflight",
+    "mode": "STRICT READ-ONLY",
+    "db_connection": {
+        "database": "socialpilot",
+        "user": "AZDARrqgy4MBFGE.prod_app@%",
+        "ssl_cipher": "TLS_AES_128_GCM_SHA256"
+    },
+    "table_counts": {
+        "users": 2,
+        "brands": 2,
+        "brand_settings": 1,
+        "brand_members": 0,
+        "brand_content_drafts": 0,
+        "content_revisions": 0,
+        "content_variations": 0,
+        "content_generation_jobs": 0,
+        "agent_executions": 0,
+        "scheduled_posts": 0,
+        "scheduled_post_platforms": 0,
+        "scheduled_post_media": 0,
+        "brand_posts": 0,
+        "media_assets": 0,
+        "media_generation_jobs": 0,
+        "media_storyboards": 0,
+        "social_accounts": 0,
+        "social_account_tokens": 0,
+        "publishing_queues": 0,
+        "publishing_queue_items": 0,
+        "publishing_attempts": 0,
+        "publishing_notifications": 0,
+        "post_analytics": 0,
+        "analytics_snapshots": 0,
+        "analytics_reports": 0,
+        "audience_insights": 0,
+        "campaigns": 0,
+        "campaign_posts": "ERROR: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'socialpilot.campaign_posts' doesn't exist (Connection: tidb_prod_app, Host: gateway01.eu-central-1.prod.aws.tidbcloud.com, Port: 4000, Database: socialpilot, SQL: SELECT COUNT(*) AS cnt FROM `campaign_posts`)",
+        "autopilot_settings": 0,
+        "autopilot_rules": 0,
+        "jobs": 0,
+        "failed_jobs": 0,
+        "notifications": 1,
+        "personal_access_tokens": 0
+    },
+    "tenant_fks": {
+        "referencing_users": [
+            {
+                "TABLE_NAME": "agent_executions",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "agent_executions_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "ai_optimization_recommendations",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "ai_optimization_recommendations_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "analytics_reports",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "analytics_reports_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "autopilot_activity_logs",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "autopilot_activity_logs_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "autopilot_rules",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "autopilot_rules_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "autopilot_settings",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "autopilot_settings_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "brand_approval_requests",
+                "COLUMN_NAME": "approved_by",
+                "CONSTRAINT_NAME": "brand_approval_requests_approved_by_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "brand_approval_requests",
+                "COLUMN_NAME": "requested_by",
+                "CONSTRAINT_NAME": "brand_approval_requests_requested_by_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "brand_content_drafts",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "brand_content_drafts_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "brand_members",
+                "COLUMN_NAME": "invited_by",
+                "CONSTRAINT_NAME": "brand_members_invited_by_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "brand_members",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "brand_members_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "brand_posts",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "brand_posts_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "brands",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "brands_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "campaigns",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "campaigns_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "content_generation_jobs",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "content_generation_jobs_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "content_revisions",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "content_revisions_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "content_variations",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "content_variations_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "media_assets",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "media_assets_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "media_generation_jobs",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "media_generation_jobs_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "media_storyboards",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "media_storyboards_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "oauth_states",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "oauth_states_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "publishing_attempts",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "publishing_attempts_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "publishing_notifications",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "publishing_notifications_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "publishing_queue_items",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "publishing_queue_items_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "publishing_queues",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "publishing_queues_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "scheduled_posts",
+                "COLUMN_NAME": "approved_by",
+                "CONSTRAINT_NAME": "scheduled_posts_approved_by_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "scheduled_posts",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "scheduled_posts_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "scheduling_recommendations",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "scheduling_recommendations_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "social_accounts",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "social_accounts_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "subscriptions",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "subscriptions_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "trend_feedback",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "trend_feedback_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "trend_research_jobs",
+                "COLUMN_NAME": "user_id",
+                "CONSTRAINT_NAME": "trend_research_jobs_user_id_foreign",
+                "REFERENCED_TABLE_NAME": "users",
+                "REFERENCED_COLUMN_NAME": "id"
+            }
+        ],
+        "referencing_brands": [
+            {
+                "TABLE_NAME": "agent_executions",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "agent_executions_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "ai_optimization_recommendations",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "ai_optimization_recommendations_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "analytics_collection_logs",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "analytics_collection_logs_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "analytics_reports",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "analytics_reports_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "analytics_snapshots",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "analytics_snapshots_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "audience_insights",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "audience_insights_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "autopilot_activity_logs",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "autopilot_activity_logs_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "autopilot_rules",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "autopilot_rules_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "autopilot_settings",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "autopilot_settings_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "brand_analytics",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "brand_analytics_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "brand_approval_requests",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "brand_approval_requests_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "brand_content_drafts",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "brand_content_drafts_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "brand_members",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "brand_members_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "brand_posts",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "brand_posts_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "brand_settings",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "brand_settings_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "brand_trend_preferences",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "brand_trend_preferences_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "campaigns",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "campaigns_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "content_generation_jobs",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "content_generation_jobs_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "content_generation_settings",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "content_generation_settings_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "content_variations",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "content_variations_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "media_assets",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "media_assets_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "media_generation_jobs",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "media_generation_jobs_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "media_storyboards",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "media_storyboards_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "media_visual_settings",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "media_visual_settings_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "oauth_states",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "oauth_states_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "post_analytics",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "post_analytics_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "publishing_attempts",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "publishing_attempts_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "publishing_notifications",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "publishing_notifications_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "publishing_queue_items",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "publishing_queue_items_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "publishing_queues",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "publishing_queues_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "scheduled_posts",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "scheduled_posts_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "scheduling_recommendations",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "scheduling_recommendations_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "social_accounts",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "social_accounts_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "trend_research_jobs",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "trend_research_jobs_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "trending_topics",
+                "COLUMN_NAME": "brand_id",
+                "CONSTRAINT_NAME": "trending_topics_brand_id_foreign",
+                "REFERENCED_TABLE_NAME": "brands",
+                "REFERENCED_COLUMN_NAME": "id"
+            }
+        ]
+    },
+    "baseline_audit": {
+        "user_30001": {
+            "present": true,
+            "id": 30001,
+            "created_at": "2026-11-22 06:50:44"
+        },
+        "brand_30001": {
+            "present": true,
+            "id": 30001,
+            "user_id": 30001,
+            "status": "draft"
+        },
+        "user_344308": {
+            "present": true,
+            "id": 344308,
+            "created_at": "2026-11-23 12:56:45",
+            "brand_count": 1
+        }
+    }
+}

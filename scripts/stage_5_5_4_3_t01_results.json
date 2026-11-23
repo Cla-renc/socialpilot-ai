@@ -1,0 +1,100 @@
+{
+    "timestamp": "2026-11-23T09:53:42+00:00",
+    "stage": "5.5.4.3 \u2014 T-01 Controlled Production Operational Cycle Verification",
+    "mode": "CONTROLLED_SINGLE_INVOCATION",
+    "cron_secret_validation": {
+        "present": true,
+        "length": 64,
+        "is_hex": true,
+        "valid_format": true
+    },
+    "pre_execution_safety": {
+        "db_connection": {
+            "user": "AZDARrqgy4MBFGE.prod_app@%",
+            "database": "socialpilot",
+            "ssl_cipher": "TLS_AES_128_GCM_SHA256",
+            "is_prod_app": true,
+            "is_socialpilot": true
+        },
+        "table_counts": {
+            "jobs": 0,
+            "failed_jobs": 0,
+            "cache_locks": 0,
+            "scheduled_posts": 0,
+            "brand_posts": 0,
+            "publishing_attempts": 0,
+            "social_accounts": 0,
+            "publishing_queues": 0,
+            "brand_trend_preferences": 0,
+            "trend_research_jobs": 0,
+            "pending_jobs": 0,
+            "delayed_jobs": 0,
+            "reserved_jobs": 0,
+            "brand_30001_status": "draft"
+        },
+        "all_checks_passed": true
+    },
+    "invocation": {
+        "timestamp": "2026-11-23T09:54:23+00:00",
+        "endpoint": "https:\/\/socialpilot-ai-y4lm.onrender.com\/api\/internal\/ops\/cycle",
+        "http_status": 200,
+        "client_duration_seconds": 35.114,
+        "curl_exit_code": 0,
+        "raw_response": "{\"status\":\"success\",\"timestamp\":\"2026-11-23T09:54:55+00:00\",\"duration_seconds\":9.317,\"memory_peak_mb\":10,\"scheduler\":{\"exit_code\":0,\"output\":\"2026-11-23 09:54:47 Running ['artisan' trends:schedule] ............ 2s DONE\\n  \\u21c2 '\\\/usr\\\/local\\\/bin\\\/php' 'artisan' trends:schedule > '\\\/dev\\\/null' 2>&1  \\n  2026-11-23 09:54:50 Running ['artisan' publishing:dispatch-scheduled]  2s DONE\\n  \\u21c2 '\\\/usr\\\/local\\\/bin\\\/php' 'artisan' publishing:dispatch-scheduled > '\\\/dev\\\/null' 2>&1\"},\"queue\":{\"exit_code\":0,\"output\":\"\"}}",
+        "decoded_response": {
+            "status": "success",
+            "timestamp": "2026-11-23T09:54:55+00:00",
+            "duration_seconds": 9.317,
+            "memory_peak_mb": 10,
+            "scheduler": {
+                "exit_code": 0,
+                "output": "2026-11-23 09:54:47 Running ['artisan' trends:schedule] ............ 2s DONE\n  \u21c2 '\/usr\/local\/bin\/php' 'artisan' trends:schedule > '\/dev\/null' 2>&1  \n  2026-11-23 09:54:50 Running ['artisan' publishing:dispatch-scheduled]  2s DONE\n  \u21c2 '\/usr\/local\/bin\/php' 'artisan' publishing:dispatch-scheduled > '\/dev\/null' 2>&1"
+            },
+            "queue": {
+                "exit_code": 0,
+                "output": ""
+            }
+        }
+    },
+    "post_execution_safety": {
+        "table_counts": {
+            "jobs": 0,
+            "failed_jobs": 0,
+            "cache_locks": 0,
+            "scheduled_posts": 0,
+            "brand_posts": 0,
+            "publishing_attempts": 0,
+            "social_accounts": 0,
+            "publishing_queues": 0,
+            "brand_trend_preferences": 0,
+            "trend_research_jobs": 0,
+            "pending_jobs": 0,
+            "delayed_jobs": 0,
+            "reserved_jobs": 0
+        },
+        "active_ops_cycle_locks": 0,
+        "lock_cleanly_released": true
+    },
+    "endpoint_health": {
+        "up": {
+            "path": "\/up",
+            "http_status": 200,
+            "body": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\n    <title>SocialPilot AI<\/title>\n\n    <!-- Fonts -->\n    <",
+            "healthy": true
+        },
+        "health": {
+            "path": "\/api\/v1\/health",
+            "http_status": 200,
+            "body": "{\"status\":\"ok\",\"timestamp\":\"2026-11-23T09:55:05.027151Z\",\"checks\":{\"database\":true,\"users\":true,\"brands\":true}}",
+            "healthy": true
+        },
+        "ready": {
+            "path": "\/api\/v1\/health\/ready",
+            "http_status": 200,
+            "body": "{\"ready\":true,\"service\":\"socialpilot-ai\",\"timestamp\":\"2026-11-23T09:55:06.025373Z\"}",
+            "healthy": true
+        }
+    },
+    "final_decision": "A \u2014 PASS",
+    "decision_rationale": "Exactly one invocation completed successfully (HTTP 200, status=success); lock was acquired and cleanly released; all table counts remained invariant (zero unwanted jobs, posts, or attempts); all health endpoints returned HTTP 200."
+}

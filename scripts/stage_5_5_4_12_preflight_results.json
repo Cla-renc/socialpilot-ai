@@ -1,0 +1,256 @@
+{
+    "timestamp": "2026-11-23T13:03:10+00:00",
+    "stage": "5.5.4.12 \u2014 T-08 Synthetic Media Probe Preflight",
+    "mode": "STRICT READ-ONLY",
+    "storage_config": {
+        "configured_media_disk": "supabase",
+        "disk_driver": "s3",
+        "bucket": "media",
+        "region": "eu-west-1",
+        "endpoint": "https://vznosyrvokaenrqabalr.storage.supabase.co/storage/v1/s3",
+        "use_path_style_endpoint": true,
+        "public_url_base": "https://vznosyrvokaenrqabalr.supabase.co/storage/v1/object/public/media",
+        "has_access_key": true,
+        "access_key_length": 32,
+        "has_secret_key": true,
+        "secret_key_length": 64,
+        "max_upload_size_mb": "20",
+        "image_provider": "",
+        "video_provider": ""
+    },
+    "db_connection": {
+        "database": "socialpilot",
+        "user": "AZDARrqgy4MBFGE.prod_app@%",
+        "ssl_cipher": "TLS_AES_128_GCM_SHA256"
+    },
+    "table_counts": {
+        "users": 2,
+        "brands": 1,
+        "media_assets": 0,
+        "media_generation_jobs": 0,
+        "media_storyboards": 0,
+        "scheduled_post_media": 0,
+        "brand_content_drafts": 0,
+        "scheduled_posts": 0,
+        "publishing_attempts": 0,
+        "jobs": 0,
+        "failed_jobs": 0,
+        "notifications": 0,
+        "personal_access_tokens": 0
+    },
+    "foreign_keys": {
+        "referencing_media_assets": [
+            {
+                "TABLE_NAME": "scheduled_post_media",
+                "COLUMN_NAME": "media_asset_id",
+                "CONSTRAINT_NAME": "scheduled_post_media_media_asset_id_foreign",
+                "REFERENCED_TABLE_NAME": "media_assets",
+                "REFERENCED_COLUMN_NAME": "id"
+            }
+        ]
+    },
+    "columns": {
+        "media_assets": [
+            {
+                "COLUMN_NAME": "id",
+                "COLUMN_TYPE": "bigint unsigned",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "user_id",
+                "COLUMN_TYPE": "bigint unsigned",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "brand_id",
+                "COLUMN_TYPE": "bigint unsigned",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "content_draft_id",
+                "COLUMN_TYPE": "bigint unsigned",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "parent_asset_id",
+                "COLUMN_TYPE": "bigint unsigned",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "asset_type",
+                "COLUMN_TYPE": "varchar(50)",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "title",
+                "COLUMN_TYPE": "varchar(255)",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "file_name",
+                "COLUMN_TYPE": "varchar(255)",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "file_format",
+                "COLUMN_TYPE": "varchar(20)",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "mime_type",
+                "COLUMN_TYPE": "varchar(100)",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "storage_disk",
+                "COLUMN_TYPE": "varchar(50)",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": "local"
+            },
+            {
+                "COLUMN_NAME": "storage_path",
+                "COLUMN_TYPE": "text",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "public_url",
+                "COLUMN_TYPE": "text",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "file_size",
+                "COLUMN_TYPE": "bigint unsigned",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "width",
+                "COLUMN_TYPE": "int unsigned",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "height",
+                "COLUMN_TYPE": "int unsigned",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "aspect_ratio",
+                "COLUMN_TYPE": "varchar(20)",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "platform",
+                "COLUMN_TYPE": "varchar(50)",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "provider",
+                "COLUMN_TYPE": "varchar(50)",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "provider_model",
+                "COLUMN_TYPE": "varchar(100)",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "provider_job_id",
+                "COLUMN_TYPE": "varchar(255)",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "generation_prompt",
+                "COLUMN_TYPE": "text",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "generation_params",
+                "COLUMN_TYPE": "text",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "generation_status",
+                "COLUMN_TYPE": "varchar(50)",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": "pending"
+            },
+            {
+                "COLUMN_NAME": "generation_error",
+                "COLUMN_TYPE": "text",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "objective",
+                "COLUMN_TYPE": "varchar(100)",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "visual_style",
+                "COLUMN_TYPE": "varchar(100)",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "is_variation",
+                "COLUMN_TYPE": "tinyint(1)",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": "0"
+            },
+            {
+                "COLUMN_NAME": "metadata",
+                "COLUMN_TYPE": "text",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "created_at",
+                "COLUMN_TYPE": "timestamp",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "updated_at",
+                "COLUMN_TYPE": "timestamp",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "deleted_at",
+                "COLUMN_TYPE": "timestamp",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            }
+        ]
+    },
+    "baseline_audit": {
+        "user_30001_present": true,
+        "user_30001_id": 30001,
+        "brand_30001_present": true,
+        "brand_30001_id": 30001,
+        "brand_30001_user_id": 30001,
+        "brand_30001_status": "draft"
+    }
+}

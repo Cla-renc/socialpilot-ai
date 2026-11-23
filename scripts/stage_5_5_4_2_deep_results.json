@@ -1,0 +1,119 @@
+{
+    "timestamp": "2026-11-23T09:35:33+00:00",
+    "stage": "5.5.4.2 (Extended) \u2014 Production Queue & Scheduler Safety Preflight",
+    "mode": "STRICT READ-ONLY",
+    "endpoint_checks": {
+        "root": {
+            "path": "\/",
+            "http_status": 0,
+            "body_length": 0,
+            "healthy": false
+        },
+        "up": {
+            "path": "\/up",
+            "http_status": 200,
+            "body_length": 1837,
+            "healthy": true
+        },
+        "health": {
+            "path": "\/api\/v1\/health",
+            "http_status": 200,
+            "body_length": 111,
+            "healthy": true
+        },
+        "ready": {
+            "path": "\/api\/v1\/health\/ready",
+            "http_status": 200,
+            "body_length": 83,
+            "healthy": true
+        }
+    },
+    "db_connection": {
+        "user": "AZDARrqgy4MBFGE.prod_app@%",
+        "database": "socialpilot",
+        "ssl_cipher": "TLS_AES_128_GCM_SHA256",
+        "is_prod_app": true,
+        "is_socialpilot": true
+    },
+    "scheduler_tables_audit": {
+        "jobs": {
+            "description": "Queue jobs",
+            "count": 0,
+            "status": "OK"
+        },
+        "failed_jobs": {
+            "description": "Failed queue jobs",
+            "count": 0,
+            "status": "OK"
+        },
+        "cache_locks": {
+            "description": "Distributed cache locks",
+            "count": 0,
+            "status": "OK"
+        },
+        "scheduled_posts": {
+            "description": "Scheduled posts",
+            "count": 0,
+            "status": "OK"
+        },
+        "brand_posts": {
+            "description": "Brand posts",
+            "count": 0,
+            "status": "OK"
+        },
+        "publishing_attempts": {
+            "description": "Publishing attempts",
+            "count": 0,
+            "status": "OK"
+        },
+        "social_accounts": {
+            "description": "Connected social accounts",
+            "count": 0,
+            "status": "OK"
+        },
+        "publishing_queues": {
+            "description": "Publishing queues",
+            "count": 0,
+            "status": "OK"
+        },
+        "brand_trend_preferences": {
+            "description": "Brand trend preferences",
+            "count": 0,
+            "status": "OK"
+        },
+        "trend_research_jobs": {
+            "description": "Trend research jobs",
+            "count": 0,
+            "status": "OK"
+        },
+        "brands": {
+            "description": "Brands",
+            "count": 1,
+            "status": "OK"
+        },
+        "users": {
+            "description": "Users",
+            "count": 1,
+            "status": "OK"
+        }
+    },
+    "queue_audit": {
+        "total_jobs": 0,
+        "pending_jobs": 0,
+        "delayed_jobs": 0,
+        "reserved_jobs": 0,
+        "failed_jobs": 0,
+        "queue_completely_empty": true
+    },
+    "safety_conclusion": {
+        "safe_to_execute_t01": true,
+        "reason": "Zero queued jobs, zero scheduled posts, zero active social accounts, zero cache locks. Running ops cycle is guaranteed 100% side-effect free."
+    },
+    "existing_brand": {
+        "id": 30001,
+        "name": "Ullrich-Mitchell",
+        "user_id": 30001,
+        "status": "draft"
+    },
+    "active_social_accounts": 0
+}

@@ -1,0 +1,298 @@
+{
+    "timestamp": "2026-11-23T11:03:22+00:00",
+    "stage": "5.5.4.8 \u2014 T-06 Internal AI Content Generation Preflight",
+    "mode": "STRICT READ-ONLY",
+    "db_connection": {
+        "database": "socialpilot",
+        "user": "AZDARrqgy4MBFGE.prod_app@%",
+        "tls_cipher": "TLS_AES_128_GCM_SHA256",
+        "is_socialpilot": true,
+        "is_prod_app": true
+    },
+    "table_counts": {
+        "users": 1,
+        "brands": 1,
+        "brand_content_drafts": 0,
+        "content_revisions": 0,
+        "content_generation_jobs": 0,
+        "content_variations": 0,
+        "agent_executions": 0,
+        "content_generation_settings": 0
+    },
+    "migration_29_constraints": {
+        "bcd_generation_job_id_unique": true,
+        "cr_draft_id_revision_number_unique": true
+    },
+    "foreign_keys": [
+        {
+            "table": "brand_posts",
+            "referenced": "brands",
+            "constraint": "brand_posts_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "brand_posts",
+            "referenced": "brand_content_drafts",
+            "constraint": "brand_posts_content_draft_id_foreign",
+            "delete_rule": "SET NULL"
+        },
+        {
+            "table": "brand_analytics",
+            "referenced": "brands",
+            "constraint": "brand_analytics_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "campaigns",
+            "referenced": "brands",
+            "constraint": "campaigns_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "brand_members",
+            "referenced": "brands",
+            "constraint": "brand_members_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "brand_approval_requests",
+            "referenced": "brands",
+            "constraint": "brand_approval_requests_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "agent_executions",
+            "referenced": "brands",
+            "constraint": "agent_executions_brand_id_foreign",
+            "delete_rule": "SET NULL"
+        },
+        {
+            "table": "trend_research_jobs",
+            "referenced": "brands",
+            "constraint": "trend_research_jobs_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "trending_topics",
+            "referenced": "brands",
+            "constraint": "trending_topics_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "brand_trend_preferences",
+            "referenced": "brands",
+            "constraint": "brand_trend_preferences_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "content_generation_jobs",
+            "referenced": "brands",
+            "constraint": "content_generation_jobs_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "content_variations",
+            "referenced": "brand_content_drafts",
+            "constraint": "content_variations_draft_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "content_variations",
+            "referenced": "brands",
+            "constraint": "content_variations_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "content_revisions",
+            "referenced": "brand_content_drafts",
+            "constraint": "content_revisions_draft_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "content_trend_sources",
+            "referenced": "brand_content_drafts",
+            "constraint": "content_trend_sources_draft_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "content_generation_settings",
+            "referenced": "brands",
+            "constraint": "content_generation_settings_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "media_assets",
+            "referenced": "brands",
+            "constraint": "media_assets_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "media_assets",
+            "referenced": "brand_content_drafts",
+            "constraint": "media_assets_content_draft_id_foreign",
+            "delete_rule": "SET NULL"
+        },
+        {
+            "table": "media_generation_jobs",
+            "referenced": "brands",
+            "constraint": "media_generation_jobs_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "media_generation_jobs",
+            "referenced": "brand_content_drafts",
+            "constraint": "media_generation_jobs_content_draft_id_foreign",
+            "delete_rule": "SET NULL"
+        },
+        {
+            "table": "media_storyboards",
+            "referenced": "brands",
+            "constraint": "media_storyboards_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "media_storyboards",
+            "referenced": "brand_content_drafts",
+            "constraint": "media_storyboards_content_draft_id_foreign",
+            "delete_rule": "SET NULL"
+        },
+        {
+            "table": "media_visual_settings",
+            "referenced": "brands",
+            "constraint": "media_visual_settings_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "scheduled_posts",
+            "referenced": "brands",
+            "constraint": "scheduled_posts_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "scheduled_posts",
+            "referenced": "brand_content_drafts",
+            "constraint": "scheduled_posts_content_draft_id_foreign",
+            "delete_rule": "SET NULL"
+        },
+        {
+            "table": "publishing_queues",
+            "referenced": "brands",
+            "constraint": "publishing_queues_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "publishing_queue_items",
+            "referenced": "brands",
+            "constraint": "publishing_queue_items_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "publishing_queue_items",
+            "referenced": "brand_content_drafts",
+            "constraint": "publishing_queue_items_content_draft_id_foreign",
+            "delete_rule": "SET NULL"
+        },
+        {
+            "table": "autopilot_settings",
+            "referenced": "brands",
+            "constraint": "autopilot_settings_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "autopilot_rules",
+            "referenced": "brands",
+            "constraint": "autopilot_rules_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "autopilot_activity_logs",
+            "referenced": "brands",
+            "constraint": "autopilot_activity_logs_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "scheduling_recommendations",
+            "referenced": "brands",
+            "constraint": "scheduling_recommendations_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "publishing_attempts",
+            "referenced": "brands",
+            "constraint": "publishing_attempts_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "oauth_states",
+            "referenced": "brands",
+            "constraint": "oauth_states_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "publishing_notifications",
+            "referenced": "brands",
+            "constraint": "publishing_notifications_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "analytics_snapshots",
+            "referenced": "brands",
+            "constraint": "analytics_snapshots_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "post_analytics",
+            "referenced": "brands",
+            "constraint": "post_analytics_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "audience_insights",
+            "referenced": "brands",
+            "constraint": "audience_insights_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "analytics_collection_logs",
+            "referenced": "brands",
+            "constraint": "analytics_collection_logs_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "analytics_reports",
+            "referenced": "brands",
+            "constraint": "analytics_reports_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "ai_optimization_recommendations",
+            "referenced": "brands",
+            "constraint": "ai_optimization_recommendations_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "brand_settings",
+            "referenced": "brands",
+            "constraint": "brand_settings_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "social_accounts",
+            "referenced": "brands",
+            "constraint": "social_accounts_brand_id_foreign",
+            "delete_rule": "SET NULL"
+        },
+        {
+            "table": "brand_content_drafts",
+            "referenced": "brands",
+            "constraint": "brand_content_drafts_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "brand_content_drafts",
+            "referenced": "content_generation_jobs",
+            "constraint": "brand_content_drafts_generation_job_id_foreign",
+            "delete_rule": "SET NULL"
+        }
+    ]
+}

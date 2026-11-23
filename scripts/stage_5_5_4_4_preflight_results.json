@@ -1,0 +1,334 @@
+{
+    "timestamp": "2026-11-23T09:58:53+00:00",
+    "stage": "5.5.4.4 \u2014 Production Authentication & Identity Provisioning Preflight",
+    "mode": "STRICT READ-ONLY",
+    "users_table_schema": [
+        {
+            "field": "id",
+            "type": "bigint unsigned",
+            "null": "NO",
+            "key": "PRI",
+            "default": null,
+            "extra": "auto_increment"
+        },
+        {
+            "field": "name",
+            "type": "varchar(255)",
+            "null": "NO",
+            "key": "",
+            "default": null,
+            "extra": ""
+        },
+        {
+            "field": "email",
+            "type": "varchar(255)",
+            "null": "NO",
+            "key": "UNI",
+            "default": null,
+            "extra": ""
+        },
+        {
+            "field": "email_verified_at",
+            "type": "timestamp",
+            "null": "YES",
+            "key": "",
+            "default": null,
+            "extra": ""
+        },
+        {
+            "field": "password",
+            "type": "varchar(255)",
+            "null": "NO",
+            "key": "",
+            "default": null,
+            "extra": ""
+        },
+        {
+            "field": "remember_token",
+            "type": "varchar(100)",
+            "null": "YES",
+            "key": "",
+            "default": null,
+            "extra": ""
+        },
+        {
+            "field": "created_at",
+            "type": "timestamp",
+            "null": "YES",
+            "key": "",
+            "default": null,
+            "extra": ""
+        },
+        {
+            "field": "updated_at",
+            "type": "timestamp",
+            "null": "YES",
+            "key": "",
+            "default": null,
+            "extra": ""
+        },
+        {
+            "field": "terms_accepted_at",
+            "type": "timestamp",
+            "null": "YES",
+            "key": "",
+            "default": null,
+            "extra": ""
+        },
+        {
+            "field": "terms_version",
+            "type": "varchar(32)",
+            "null": "YES",
+            "key": "",
+            "default": null,
+            "extra": ""
+        }
+    ],
+    "users_indexes": [
+        {
+            "key_name": "PRIMARY",
+            "column_name": "id",
+            "non_unique": 0
+        },
+        {
+            "key_name": "users_email_unique",
+            "column_name": "email",
+            "non_unique": 0
+        }
+    ],
+    "personal_access_tokens_schema": [
+        {
+            "field": "id",
+            "type": "bigint unsigned",
+            "null": "NO",
+            "key": "PRI"
+        },
+        {
+            "field": "tokenable_type",
+            "type": "varchar(255)",
+            "null": "NO",
+            "key": "MUL"
+        },
+        {
+            "field": "tokenable_id",
+            "type": "bigint unsigned",
+            "null": "NO",
+            "key": ""
+        },
+        {
+            "field": "name",
+            "type": "text",
+            "null": "NO",
+            "key": ""
+        },
+        {
+            "field": "token",
+            "type": "varchar(64)",
+            "null": "NO",
+            "key": "UNI"
+        },
+        {
+            "field": "abilities",
+            "type": "text",
+            "null": "YES",
+            "key": ""
+        },
+        {
+            "field": "last_used_at",
+            "type": "timestamp",
+            "null": "YES",
+            "key": ""
+        },
+        {
+            "field": "expires_at",
+            "type": "timestamp",
+            "null": "YES",
+            "key": "MUL"
+        },
+        {
+            "field": "created_at",
+            "type": "timestamp",
+            "null": "YES",
+            "key": ""
+        },
+        {
+            "field": "updated_at",
+            "type": "timestamp",
+            "null": "YES",
+            "key": ""
+        }
+    ],
+    "existing_user_count": 1,
+    "existing_user_ids": [
+        30001
+    ],
+    "existing_brands": [
+        {
+            "id": 30001,
+            "user_id": 30001,
+            "status": "draft"
+        }
+    ],
+    "foreign_keys_to_users": [
+        {
+            "table": "brand_posts",
+            "column": "user_id",
+            "constraint": "brand_posts_user_id_foreign"
+        },
+        {
+            "table": "campaigns",
+            "column": "user_id",
+            "constraint": "campaigns_user_id_foreign"
+        },
+        {
+            "table": "brand_members",
+            "column": "user_id",
+            "constraint": "brand_members_user_id_foreign"
+        },
+        {
+            "table": "brand_members",
+            "column": "invited_by",
+            "constraint": "brand_members_invited_by_foreign"
+        },
+        {
+            "table": "brand_approval_requests",
+            "column": "requested_by",
+            "constraint": "brand_approval_requests_requested_by_foreign"
+        },
+        {
+            "table": "brand_approval_requests",
+            "column": "approved_by",
+            "constraint": "brand_approval_requests_approved_by_foreign"
+        },
+        {
+            "table": "agent_executions",
+            "column": "user_id",
+            "constraint": "agent_executions_user_id_foreign"
+        },
+        {
+            "table": "trend_research_jobs",
+            "column": "user_id",
+            "constraint": "trend_research_jobs_user_id_foreign"
+        },
+        {
+            "table": "trend_feedback",
+            "column": "user_id",
+            "constraint": "trend_feedback_user_id_foreign"
+        },
+        {
+            "table": "content_generation_jobs",
+            "column": "user_id",
+            "constraint": "content_generation_jobs_user_id_foreign"
+        },
+        {
+            "table": "content_variations",
+            "column": "user_id",
+            "constraint": "content_variations_user_id_foreign"
+        },
+        {
+            "table": "content_revisions",
+            "column": "user_id",
+            "constraint": "content_revisions_user_id_foreign"
+        },
+        {
+            "table": "media_assets",
+            "column": "user_id",
+            "constraint": "media_assets_user_id_foreign"
+        },
+        {
+            "table": "media_generation_jobs",
+            "column": "user_id",
+            "constraint": "media_generation_jobs_user_id_foreign"
+        },
+        {
+            "table": "media_storyboards",
+            "column": "user_id",
+            "constraint": "media_storyboards_user_id_foreign"
+        },
+        {
+            "table": "scheduled_posts",
+            "column": "user_id",
+            "constraint": "scheduled_posts_user_id_foreign"
+        },
+        {
+            "table": "scheduled_posts",
+            "column": "approved_by",
+            "constraint": "scheduled_posts_approved_by_foreign"
+        },
+        {
+            "table": "publishing_queues",
+            "column": "user_id",
+            "constraint": "publishing_queues_user_id_foreign"
+        },
+        {
+            "table": "publishing_queue_items",
+            "column": "user_id",
+            "constraint": "publishing_queue_items_user_id_foreign"
+        },
+        {
+            "table": "autopilot_settings",
+            "column": "user_id",
+            "constraint": "autopilot_settings_user_id_foreign"
+        },
+        {
+            "table": "autopilot_rules",
+            "column": "user_id",
+            "constraint": "autopilot_rules_user_id_foreign"
+        },
+        {
+            "table": "autopilot_activity_logs",
+            "column": "user_id",
+            "constraint": "autopilot_activity_logs_user_id_foreign"
+        },
+        {
+            "table": "scheduling_recommendations",
+            "column": "user_id",
+            "constraint": "scheduling_recommendations_user_id_foreign"
+        },
+        {
+            "table": "publishing_attempts",
+            "column": "user_id",
+            "constraint": "publishing_attempts_user_id_foreign"
+        },
+        {
+            "table": "oauth_states",
+            "column": "user_id",
+            "constraint": "oauth_states_user_id_foreign"
+        },
+        {
+            "table": "publishing_notifications",
+            "column": "user_id",
+            "constraint": "publishing_notifications_user_id_foreign"
+        },
+        {
+            "table": "analytics_reports",
+            "column": "user_id",
+            "constraint": "analytics_reports_user_id_foreign"
+        },
+        {
+            "table": "ai_optimization_recommendations",
+            "column": "user_id",
+            "constraint": "ai_optimization_recommendations_user_id_foreign"
+        },
+        {
+            "table": "brands",
+            "column": "user_id",
+            "constraint": "brands_user_id_foreign"
+        },
+        {
+            "table": "social_accounts",
+            "column": "user_id",
+            "constraint": "social_accounts_user_id_foreign"
+        },
+        {
+            "table": "subscriptions",
+            "column": "user_id",
+            "constraint": "subscriptions_user_id_foreign"
+        },
+        {
+            "table": "brand_content_drafts",
+            "column": "user_id",
+            "constraint": "brand_content_drafts_user_id_foreign"
+        }
+    ]
+}

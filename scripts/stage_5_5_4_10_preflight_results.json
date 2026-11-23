@@ -1,0 +1,321 @@
+{
+    "timestamp": "2026-11-23T11:26:54+00:00",
+    "stage": "5.5.4.10 \u2014 T-07 Post Scheduling Preflight",
+    "mode": "STRICT READ-ONLY",
+    "db_connection": {
+        "database": "socialpilot",
+        "user": "AZDARrqgy4MBFGE.prod_app@%",
+        "ssl_cipher": "TLS_AES_128_GCM_SHA256"
+    },
+    "table_counts": {
+        "users": 1,
+        "brands": 1,
+        "brand_posts": 0,
+        "scheduled_posts": 0,
+        "scheduled_post_platforms": 0,
+        "scheduled_post_media": 0,
+        "publishing_queues": 0,
+        "publishing_queue_items": 0,
+        "publishing_attempts": 0,
+        "post_analytics": 0,
+        "publishing_notifications": 0,
+        "jobs": 0,
+        "failed_jobs": 0,
+        "notifications": 0,
+        "personal_access_tokens": 0
+    },
+    "foreign_keys": {
+        "referencing_scheduled_posts": [
+            {
+                "TABLE_NAME": "scheduled_post_platforms",
+                "COLUMN_NAME": "scheduled_post_id",
+                "CONSTRAINT_NAME": "scheduled_post_platforms_scheduled_post_id_foreign",
+                "REFERENCED_TABLE_NAME": "scheduled_posts",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "scheduled_post_media",
+                "COLUMN_NAME": "scheduled_post_id",
+                "CONSTRAINT_NAME": "scheduled_post_media_scheduled_post_id_foreign",
+                "REFERENCED_TABLE_NAME": "scheduled_posts",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "publishing_queue_items",
+                "COLUMN_NAME": "scheduled_post_id",
+                "CONSTRAINT_NAME": "publishing_queue_items_scheduled_post_id_foreign",
+                "REFERENCED_TABLE_NAME": "scheduled_posts",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "publishing_attempts",
+                "COLUMN_NAME": "scheduled_post_id",
+                "CONSTRAINT_NAME": "publishing_attempts_scheduled_post_id_foreign",
+                "REFERENCED_TABLE_NAME": "scheduled_posts",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "publishing_notifications",
+                "COLUMN_NAME": "scheduled_post_id",
+                "CONSTRAINT_NAME": "publishing_notifications_scheduled_post_id_foreign",
+                "REFERENCED_TABLE_NAME": "scheduled_posts",
+                "REFERENCED_COLUMN_NAME": "id"
+            },
+            {
+                "TABLE_NAME": "post_analytics",
+                "COLUMN_NAME": "scheduled_post_id",
+                "CONSTRAINT_NAME": "post_analytics_scheduled_post_id_foreign",
+                "REFERENCED_TABLE_NAME": "scheduled_posts",
+                "REFERENCED_COLUMN_NAME": "id"
+            }
+        ]
+    },
+    "columns": {
+        "scheduled_posts": [
+            {
+                "COLUMN_NAME": "id",
+                "COLUMN_TYPE": "bigint unsigned",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "user_id",
+                "COLUMN_TYPE": "bigint unsigned",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "brand_id",
+                "COLUMN_TYPE": "bigint unsigned",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "content_draft_id",
+                "COLUMN_TYPE": "bigint unsigned",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "title",
+                "COLUMN_TYPE": "varchar(255)",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "caption",
+                "COLUMN_TYPE": "text",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "body",
+                "COLUMN_TYPE": "longtext",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "hashtags",
+                "COLUMN_TYPE": "json",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "scheduled_at",
+                "COLUMN_TYPE": "datetime",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "timezone",
+                "COLUMN_TYPE": "varchar(64)",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": "UTC"
+            },
+            {
+                "COLUMN_NAME": "status",
+                "COLUMN_TYPE": "varchar(32)",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": "scheduled"
+            },
+            {
+                "COLUMN_NAME": "requires_approval",
+                "COLUMN_TYPE": "tinyint(1)",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": "0"
+            },
+            {
+                "COLUMN_NAME": "is_approved",
+                "COLUMN_TYPE": "tinyint(1)",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": "0"
+            },
+            {
+                "COLUMN_NAME": "approved_by",
+                "COLUMN_TYPE": "bigint unsigned",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "approved_at",
+                "COLUMN_TYPE": "datetime",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "autopilot_managed",
+                "COLUMN_TYPE": "tinyint(1)",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": "0"
+            },
+            {
+                "COLUMN_NAME": "autopilot_rule_id",
+                "COLUMN_TYPE": "bigint unsigned",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "cancellation_reason",
+                "COLUMN_TYPE": "varchar(255)",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "failure_reason",
+                "COLUMN_TYPE": "text",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "metadata",
+                "COLUMN_TYPE": "json",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "created_at",
+                "COLUMN_TYPE": "timestamp",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "updated_at",
+                "COLUMN_TYPE": "timestamp",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "deleted_at",
+                "COLUMN_TYPE": "timestamp",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            }
+        ],
+        "brand_posts": [
+            {
+                "COLUMN_NAME": "id",
+                "COLUMN_TYPE": "bigint unsigned",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "user_id",
+                "COLUMN_TYPE": "bigint unsigned",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "brand_id",
+                "COLUMN_TYPE": "bigint unsigned",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "campaign_id",
+                "COLUMN_TYPE": "bigint unsigned",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "content_draft_id",
+                "COLUMN_TYPE": "bigint unsigned",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "provider",
+                "COLUMN_TYPE": "varchar(255)",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": "internal"
+            },
+            {
+                "COLUMN_NAME": "platform",
+                "COLUMN_TYPE": "varchar(255)",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": "linkedin"
+            },
+            {
+                "COLUMN_NAME": "status",
+                "COLUMN_TYPE": "varchar(255)",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": "queued"
+            },
+            {
+                "COLUMN_NAME": "scheduled_for",
+                "COLUMN_TYPE": "timestamp",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "published_at",
+                "COLUMN_TYPE": "timestamp",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "content",
+                "COLUMN_TYPE": "longtext",
+                "IS_NULLABLE": "NO",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "metadata",
+                "COLUMN_TYPE": "json",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "response_payload",
+                "COLUMN_TYPE": "json",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "error_message",
+                "COLUMN_TYPE": "text",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "created_at",
+                "COLUMN_TYPE": "timestamp",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            },
+            {
+                "COLUMN_NAME": "updated_at",
+                "COLUMN_TYPE": "timestamp",
+                "IS_NULLABLE": "YES",
+                "COLUMN_DEFAULT": null
+            }
+        ]
+    },
+    "baseline_audit": {
+        "user_30001_present": true,
+        "user_30001_id": 30001,
+        "brand_30001_present": true,
+        "brand_30001_id": 30001,
+        "brand_30001_user_id": 30001,
+        "brand_30001_status": "draft"
+    }
+}

@@ -1,0 +1,486 @@
+{
+    "timestamp": "2026-11-23T10:13:04+00:00",
+    "stage": "5.5.4.6 \u2014 T-04 Brand Creation & T-05 Brand Overview Preflight",
+    "mode": "STRICT READ-ONLY",
+    "db_connection": {
+        "database": "socialpilot",
+        "user": "AZDARrqgy4MBFGE.prod_app@%",
+        "tls_cipher": "TLS_AES_128_GCM_SHA256",
+        "is_socialpilot": true,
+        "is_prod_app": true,
+        "tls_active": true
+    },
+    "existing_counts": {
+        "users": 1,
+        "brands": 1,
+        "brand_settings": 0
+    },
+    "brand_30001_details": {
+        "id": 30001,
+        "name": "Ullrich-Mitchell",
+        "user_id": 30001,
+        "status": "draft",
+        "industry": null,
+        "owned_by_30001": true,
+        "is_draft": true
+    },
+    "brands_schema": [
+        {
+            "field": "id",
+            "type": "bigint unsigned",
+            "null": "NO",
+            "key": "PRI",
+            "default": null
+        },
+        {
+            "field": "user_id",
+            "type": "bigint unsigned",
+            "null": "NO",
+            "key": "MUL",
+            "default": null
+        },
+        {
+            "field": "name",
+            "type": "varchar(255)",
+            "null": "NO",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "description",
+            "type": "text",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "category",
+            "type": "varchar(255)",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "audience",
+            "type": "varchar(255)",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "region",
+            "type": "varchar(255)",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "language",
+            "type": "varchar(255)",
+            "null": "NO",
+            "key": "",
+            "default": "en"
+        },
+        {
+            "field": "tone",
+            "type": "varchar(255)",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "status",
+            "type": "varchar(255)",
+            "null": "NO",
+            "key": "",
+            "default": "draft"
+        },
+        {
+            "field": "logo_path",
+            "type": "varchar(255)",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "profile_image_path",
+            "type": "varchar(255)",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "last_activity_at",
+            "type": "timestamp",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "created_at",
+            "type": "timestamp",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "updated_at",
+            "type": "timestamp",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "website_url",
+            "type": "varchar(255)",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "industry",
+            "type": "varchar(255)",
+            "null": "YES",
+            "key": "MUL",
+            "default": null
+        },
+        {
+            "field": "niche",
+            "type": "varchar(255)",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "target_age_group",
+            "type": "varchar(255)",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "audience_interests",
+            "type": "json",
+            "null": "YES",
+            "key": "",
+            "default": null
+        }
+    ],
+    "brands_indexes": [],
+    "brand_settings_schema": [
+        {
+            "field": "id",
+            "type": "bigint unsigned",
+            "null": "NO",
+            "key": "PRI",
+            "default": null
+        },
+        {
+            "field": "brand_id",
+            "type": "bigint unsigned",
+            "null": "NO",
+            "key": "UNI",
+            "default": null
+        },
+        {
+            "field": "brand_voice",
+            "type": "varchar(255)",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "writing_style",
+            "type": "varchar(255)",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "content_formats",
+            "type": "json",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "preferred_publishing_times",
+            "type": "json",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "brand_colours",
+            "type": "json",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "content_restrictions",
+            "type": "json",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "hashtag_preferences",
+            "type": "json",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "publishing_frequency",
+            "type": "varchar(255)",
+            "null": "NO",
+            "key": "",
+            "default": "weekly"
+        },
+        {
+            "field": "timezone",
+            "type": "varchar(255)",
+            "null": "NO",
+            "key": "",
+            "default": "UTC"
+        },
+        {
+            "field": "created_at",
+            "type": "timestamp",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "updated_at",
+            "type": "timestamp",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "brand_personality",
+            "type": "json",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "brand_values",
+            "type": "json",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "brand_keywords",
+            "type": "json",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "topics_to_avoid",
+            "type": "json",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "marketing_objectives",
+            "type": "json",
+            "null": "YES",
+            "key": "",
+            "default": null
+        },
+        {
+            "field": "content_preferences",
+            "type": "json",
+            "null": "YES",
+            "key": "",
+            "default": null
+        }
+    ],
+    "foreign_keys_referencing_brands": [
+        {
+            "table": "brand_posts",
+            "constraint": "brand_posts_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "brand_analytics",
+            "constraint": "brand_analytics_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "campaigns",
+            "constraint": "campaigns_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "brand_members",
+            "constraint": "brand_members_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "brand_approval_requests",
+            "constraint": "brand_approval_requests_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "agent_executions",
+            "constraint": "agent_executions_brand_id_foreign",
+            "delete_rule": "SET NULL"
+        },
+        {
+            "table": "trend_research_jobs",
+            "constraint": "trend_research_jobs_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "trending_topics",
+            "constraint": "trending_topics_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "brand_trend_preferences",
+            "constraint": "brand_trend_preferences_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "content_generation_jobs",
+            "constraint": "content_generation_jobs_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "content_variations",
+            "constraint": "content_variations_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "content_generation_settings",
+            "constraint": "content_generation_settings_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "media_assets",
+            "constraint": "media_assets_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "media_generation_jobs",
+            "constraint": "media_generation_jobs_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "media_storyboards",
+            "constraint": "media_storyboards_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "media_visual_settings",
+            "constraint": "media_visual_settings_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "scheduled_posts",
+            "constraint": "scheduled_posts_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "publishing_queues",
+            "constraint": "publishing_queues_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "publishing_queue_items",
+            "constraint": "publishing_queue_items_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "autopilot_settings",
+            "constraint": "autopilot_settings_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "autopilot_rules",
+            "constraint": "autopilot_rules_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "autopilot_activity_logs",
+            "constraint": "autopilot_activity_logs_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "scheduling_recommendations",
+            "constraint": "scheduling_recommendations_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "publishing_attempts",
+            "constraint": "publishing_attempts_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "oauth_states",
+            "constraint": "oauth_states_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "publishing_notifications",
+            "constraint": "publishing_notifications_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "analytics_snapshots",
+            "constraint": "analytics_snapshots_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "post_analytics",
+            "constraint": "post_analytics_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "audience_insights",
+            "constraint": "audience_insights_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "analytics_collection_logs",
+            "constraint": "analytics_collection_logs_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "analytics_reports",
+            "constraint": "analytics_reports_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "ai_optimization_recommendations",
+            "constraint": "ai_optimization_recommendations_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "brand_settings",
+            "constraint": "brand_settings_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        },
+        {
+            "table": "social_accounts",
+            "constraint": "social_accounts_brand_id_foreign",
+            "delete_rule": "SET NULL"
+        },
+        {
+            "table": "brand_content_drafts",
+            "constraint": "brand_content_drafts_brand_id_foreign",
+            "delete_rule": "CASCADE"
+        }
+    ],
+    "safety_verifications": {
+        "all_passed": true,
+        "ready_for_testing": true
+    }
+}
