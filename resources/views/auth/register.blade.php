@@ -1,4 +1,4 @@
-﻿<x-guest-layout>
+<x-guest-layout>
     <div class="auth-card">
         <a class="brand-mark auth-brand" href="{{ route('welcome') }}">
             <span class="brand-icon"><img src="{{ asset('assets/logo.png') }}" alt="SocialPilot AI logo" width="48" height="48"></span>
@@ -45,7 +45,7 @@
 
             <div class="terms-field">
                 <input id="terms" name="terms" type="checkbox" value="1" @checked(old('terms')) required aria-describedby="terms-error">
-                <label for="terms">I agree to the <a href="{{ route('welcome') }}#terms">current terms</a> and acknowledge the <a href="{{ route('welcome') }}#privacy">privacy notice</a>.</label>
+                <label for="terms">I agree to the <a href="{{ route('terms') }}" target="_blank" rel="noopener">Terms of Service</a> and acknowledge the <a href="{{ route('privacy') }}" target="_blank" rel="noopener">Privacy Policy</a>.</label>
             </div>
             @error('terms')<p class="field-error" id="terms-error">{{ $message }}</p>@enderror
 

@@ -14,6 +14,9 @@ use App\Http\Controllers\TrendIntelligenceController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('welcome');
+Route::view('/privacy', 'legal.privacy')->name('privacy');
+Route::view('/terms', 'legal.terms')->name('terms');
+Route::view('/data-deletion', 'legal.data-deletion')->name('data-deletion');
 Route::get('/social/oauth/{provider}/callback', [SocialOAuthController::class, 'callback'])
     ->name('social.oauth.callback');
 

@@ -181,7 +181,7 @@
             </section>
 
             <section class="legal-note" id="terms">
-                <p><strong>Terms and privacy:</strong> This development app is still evolving. Registration records when you accept the current terms version. Review and publish complete legal terms and privacy disclosures before opening the service to the public.</p>
+                <p><strong>Terms and privacy:</strong> Review our public <a href="{{ route('terms') }}">Terms of Service</a>, <a href="{{ route('privacy') }}">Privacy Policy</a>, and <a href="{{ route('data-deletion') }}">Data Deletion Instructions</a> before connecting production accounts.</p>
                 <span id="privacy"></span>
             </section>
         </main>
@@ -189,7 +189,11 @@
         <footer class="marketing-footer">
             <a class="brand-mark" href="{{ route('welcome') }}"><span class="brand-icon"><img src="{{ asset('assets/logo.png') }}" alt="SocialPilot AI logo" width="36" height="36"></span><span>SocialPilot AI</span></a>
             <span>Social planning, made more manageable.</span>
-            <a href="#terms">Terms &amp; privacy notice</a>
+            <nav class="marketing-footer__nav" aria-label="Legal links" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                <a href="{{ route('terms') }}">Terms</a>
+                <a href="{{ route('privacy') }}">Privacy</a>
+                <a href="{{ route('data-deletion') }}">Data Deletion</a>
+            </nav>
         </footer>
     </div>
     <script src="{{ asset('assets/socialpilot.js') }}" defer></script>

@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V1\BrandResource;
 use App\Http\Requests\StoreBrandRequest;
 use App\Http\Requests\UpdateBrandRequest;
+use App\Jobs\PurgeUserMediaStorageJob;
 use App\Models\Brand;
 use App\Services\BrandService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class BrandController extends Controller
@@ -134,7 +136,21 @@ class BrandController extends Controller
     {
         $this->authorize('delete', $brand);
 
-        $brand->delete();
+        $brandId  = $brand->id;
+        $logoPath = $brand->logo_path;
+        $userId   = $request->user()->id;
+
+        DB::transaction(function () use ($brand, $brandId, $logoPath, $userId): void {
+            // Dispatch storage cleanup BEFORE the SQL cascade removes the brand row,
+            // so the job's active-brand safeguard correctly identifies the brand as deleted.
+            PurgeUserMediaStorageJob::dispatch(
+                [$brandId],
+                $logoPath ? [$logoPath] : [],
+                $userId,
+            );
+
+            $brand->delete();
+        });
 
         return response()->json([
             'message' => 'Brand deleted successfully.',
