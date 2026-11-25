@@ -23,6 +23,17 @@ class ContentGenerationApiController extends Controller
     {
         abort_unless($brand->user_id === $request->user()->id, 403, 'Unauthorized brand access.');
 
+        // Normalize empty string values for optional attributes from web forms
+        if ($request->has('trend_id') && ($request->input('trend_id') === '' || $request->input('trend_id') === null)) {
+            $request->merge(['trend_id' => null]);
+        }
+        if ($request->has('category') && ($request->input('category') === '' || $request->input('category') === null)) {
+            $request->merge(['category' => null]);
+        }
+        if ($request->has('content_format') && ($request->input('content_format') === '' || $request->input('content_format') === null)) {
+            $request->merge(['content_format' => null]);
+        }
+
         $validated = $request->validate([
             'objective' => ['nullable', 'string', 'in:awareness,engagement,education,community_building,brand_authority,product_promotion,website_traffic,lead_generation'],
             'category' => ['nullable', 'string', 'max:100'],

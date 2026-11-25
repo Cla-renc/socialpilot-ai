@@ -33,6 +33,17 @@
             </div>
             @endif
 
+            {{-- Inline Error Alert --}}
+            <div id="studio-error" style="display:none;margin-bottom:1rem;padding:0.75rem 1rem;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);border-radius:8px;color:#ef4444;font-size:0.9rem;" role="alert">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem;">
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                        <span style="font-weight:600;">⚠ Error:</span>
+                        <span id="studio-error-msg"></span>
+                    </div>
+                    <button type="button" onclick="clearInlineError()" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.1rem;line-height:1;padding:0;" aria-label="Dismiss error">&times;</button>
+                </div>
+            </div>
+
             <form id="generate-form" style="display:flex;flex-direction:column;gap:1rem;">
                 @csrf
                 <input type="hidden" name="brand_id" value="{{ $brand->id }}">
@@ -202,6 +213,26 @@
     const BRAND_ID = {{ $brand->id }};
     let currentDraftId = null;
     let lastPayload = null;
+    let isGenerating = false;
+
+    function showInlineError(message) {
+        const errorBox = document.getElementById('studio-error');
+        const errorMsg = document.getElementById('studio-error-msg');
+        if (errorBox && errorMsg) {
+            errorMsg.textContent = message;
+            errorBox.style.display = 'block';
+            errorBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    function clearInlineError() {
+        const errorBox = document.getElementById('studio-error');
+        const errorMsg = document.getElementById('studio-error-msg');
+        if (errorBox && errorMsg) {
+            errorBox.style.display = 'none';
+            errorMsg.textContent = '';
+        }
+    }
 
     document.getElementById('brand-switcher')?.addEventListener('change', function() {
         window.location.href = this.value;
@@ -213,44 +244,100 @@
     });
 
     async function runGeneration(overrides = {}) {
+        if (isGenerating) return;
+
+        clearInlineError();
+
         const form = document.getElementById('generate-form');
         const data = Object.fromEntries(new FormData(form));
         Object.assign(data, overrides, { sync: true });
 
+        // Clean empty optional fields so they are treated as null/omitted
+        if (data.trend_id === '') data.trend_id = null;
+        if (data.category === '') data.category = null;
+        if (data.content_format === '') data.content_format = null;
+
         // Validation
-        if (!data.platform) { alert('Please select a platform.'); return; }
-        if (!data.objective) { alert('Please select a content objective.'); return; }
+        if (!data.platform) {
+            showInlineError('Please select a platform before generating content.');
+            return;
+        }
+        if (!data.objective) {
+            showInlineError('Please select a content objective before generating content.');
+            return;
+        }
 
         setGenerating(true);
 
         lastPayload = data;
 
         try {
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            const csrfToken = csrfMeta ? csrfMeta.content : '';
+
             const res = await fetch(`/api/v1/brands/${BRAND_ID}/content/generate`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'X-CSRF-TOKEN': csrfToken,
                 },
                 credentials: 'same-origin',
                 body: JSON.stringify(data),
             });
 
-            const json = await res.json();
+            // Safely parse JSON if response is JSON
+            let json = null;
+            const contentType = res.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                try {
+                    json = await res.json();
+                } catch (_) {
+                    json = null;
+                }
+            }
 
             if (!res.ok) {
-                const msg = json.message || json.error || 'Generation failed. Please try again.';
-                alert(msg);
+                let errorMsg = 'Generation failed. Please try again.';
+
+                if (json) {
+                    if (json.errors && typeof json.errors === 'object') {
+                        const errList = Object.values(json.errors).flat().filter(Boolean);
+                        if (errList.length > 0) {
+                            errorMsg = errList.join(' ');
+                        } else if (json.message) {
+                            errorMsg = json.message;
+                        }
+                    } else if (json.message) {
+                        errorMsg = json.message;
+                    } else if (json.error) {
+                        errorMsg = json.error;
+                    }
+                } else {
+                    if (res.status === 401 || res.status === 403) {
+                        errorMsg = 'Your session may have expired or you are unauthorized. Please refresh the page and log in again.';
+                    } else if (res.status === 419) {
+                        errorMsg = 'Page token expired. Please refresh the page and try again.';
+                    } else if (res.status >= 500) {
+                        errorMsg = `Server error (HTTP ${res.status}). Our AI engine was unable to complete the request. Please try again.`;
+                    } else {
+                        errorMsg = `Request failed with HTTP status ${res.status}. Please try again.`;
+                    }
+                }
+
+                showInlineError(errorMsg);
                 return;
             }
 
-            if (json.draft) {
+            if (json && json.draft) {
+                clearInlineError();
                 displayResult(json.draft);
+            } else {
+                showInlineError('Content generation completed, but no draft was returned by the server.');
             }
         } catch (err) {
-            console.error(err);
-            alert('An unexpected error occurred. Please try again.');
+            console.error('Content generation network or parsing error:', err);
+            showInlineError('A network error or unexpected server failure occurred. Please check your connection and try again.');
         } finally {
             setGenerating(false);
         }
@@ -347,9 +434,16 @@
     }
 
     function setGenerating(state) {
-        document.getElementById('generate-btn').disabled = state;
-        document.getElementById('gen-status').style.display = state ? '' : 'none';
-        document.getElementById('generate-btn').textContent = state ? 'Generating…' : 'Generate content';
+        isGenerating = Boolean(state);
+        const btn = document.getElementById('generate-btn');
+        const status = document.getElementById('gen-status');
+        if (btn) {
+            btn.disabled = isGenerating;
+            btn.textContent = isGenerating ? 'Generating…' : 'Generate content';
+        }
+        if (status) {
+            status.style.display = isGenerating ? '' : 'none';
+        }
     }
 
     async function regenerate() {
