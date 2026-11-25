@@ -115,11 +115,16 @@ class TrendIntelligenceController extends Controller
             'days' => ['required', 'integer', Rule::in([7, 30, 90])],
             'sources' => ['nullable', 'array', 'max:10'],
             'sources.*' => ['string', Rule::in(['rss', 'news_api', 'reddit', 'youtube', 'google_trends'])],
+            'sync' => ['nullable', 'boolean'],
         ]);
-        [$job, $created] = $this->research->start($brand, $request->user(), $validated);
+        $sync = $request->boolean('sync', false);
+        [$job, $created] = $this->research->start($brand, $request->user(), $validated, $sync);
 
-        return redirect()->route('brands.trends.index', $brand)
-            ->with('success', $created ? 'Trend research was queued. Refresh this page to check its status.' : 'Matching trend research is already active.');
+        $message = $sync
+            ? ($job->status === 'completed' || $job->status === 'partial' ? 'Trend research completed.' : 'Trend research encountered an issue.')
+            : ($created ? 'Trend research was queued. Refresh this page to check its status.' : 'Matching trend research is already active.');
+
+        return redirect()->route('brands.trends.index', $brand)->with('success', $message);
     }
 
     public function feedback(Request $request, Brand $brand, TrendingTopic $topic): RedirectResponse

@@ -30,13 +30,19 @@ class BrandTrendController extends Controller
             'days' => ['nullable', 'integer', Rule::in([7, 30, 90])],
             'sources' => ['nullable', 'array', 'max:10'],
             'sources.*' => ['string', Rule::in(['rss', 'news_api', 'reddit', 'youtube', 'google_trends'])],
+            'sync' => ['nullable', 'boolean'],
         ]);
-        [$job, $created] = $this->research->start($brand, $request->user(), $validated);
+        $sync = $request->boolean('sync');
+        [$job, $created] = $this->research->start($brand, $request->user(), $validated, $sync);
+
+        $statusCode = $sync ? ($job->status === 'failed' ? 502 : 200) : ($created ? 202 : 200);
 
         return response()->json([
-            'data' => $this->jobPayload($job),
-            'message' => $created ? 'Trend research queued.' : 'Matching trend research is already active.',
-        ], $created ? 202 : 200);
+            'data' => $this->jobPayload($job, $sync),
+            'message' => $sync
+                ? ($job->status === 'completed' || $job->status === 'partial' ? 'Trend research completed successfully.' : 'Trend research failed.')
+                : ($created ? 'Trend research queued.' : 'Matching trend research is already active.'),
+        ], $statusCode);
     }
 
     public function researchHistory(Request $request, Brand $brand)

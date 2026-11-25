@@ -10,13 +10,16 @@ use Illuminate\Support\Facades\DB;
 
 class TrendResearchService
 {
-    public function start(Brand $brand, User $user, array $filters): array
+    public function start(Brand $brand, User $user, array $filters, bool $sync = false): array
     {
+        $defaultSources = config('services.trends.rss_feeds', []) ? ['rss', 'google_trends'] : ['google_trends'];
+        $selectedSources = ! empty($filters['sources']) ? array_values($filters['sources']) : $defaultSources;
+
         $criteria = [
             'categories' => array_values($filters['categories'] ?? []),
             'geographic_market' => $filters['geographic_market'] ?? $brand->region,
             'days' => (int) ($filters['days'] ?? 30),
-            'sources' => array_values($filters['sources'] ?? []),
+            'sources' => $selectedSources,
         ];
         sort($criteria['categories']);
         sort($criteria['sources']);
@@ -47,11 +50,21 @@ class TrendResearchService
 
         [$record, $created] = $record;
         if ($created) {
-            RunTrendResearch::dispatch($record->id)
-                ->onConnection('database')
-                ->afterCommit();
+            if ($sync) {
+                try {
+                    $job = new RunTrendResearch($record->id);
+                    $job->handle();
+                } catch (\Throwable $e) {
+                    $job = new RunTrendResearch($record->id);
+                    $job->failed($e);
+                }
+            } else {
+                RunTrendResearch::dispatch($record->id)
+                    ->onConnection('database')
+                    ->afterCommit();
+            }
         }
 
-        return [$record->fresh(), $created];
+        return [$record->fresh(['topics.sources']), $created];
     }
 }

@@ -81,11 +81,11 @@ return [
     ],
 
     'trends' => [
-        'engine_url' => env('TREND_ENGINE_URL'),
-        'internal_token' => env('TREND_ENGINE_INTERNAL_TOKEN'),
+        'engine_url' => env('TREND_ENGINE_URL', env('AI_ENGINE_URL', 'http://127.0.0.1:8080')),
+        'internal_token' => env('TREND_ENGINE_INTERNAL_TOKEN', env('AI_ENGINE_INTERNAL_TOKEN', env('PUBLISHING_INTERNAL_TOKEN'))),
         'rss_feeds' => array_values(array_filter(array_map(
             'trim',
-            explode(',', (string) env('TREND_RSS_FEEDS', ''))
+            explode(',', (string) env('TREND_RSS_FEEDS', 'https://feeds.bbci.co.uk/news/rss.xml'))
         ))),
         'news_api_key' => env('NEWSAPI_API_KEY', env('NEWS_API_KEY')),
         'reddit_client_id' => env('REDDIT_CLIENT_ID'),

@@ -37,8 +37,8 @@ class RunTrendResearch implements ShouldQueue
     public function handle(): void
     {
         $research = TrendResearchRecord::query()->with(['brand.settings'])->findOrFail($this->researchJobId);
-        $engineUrl = trim((string) config('services.trends.engine_url'));
-        $internalToken = trim((string) config('services.trends.internal_token'));
+        $engineUrl = trim((string) (config('services.trends.engine_url') ?: config('services.ai.engine_url', 'http://127.0.0.1:8080')));
+        $internalToken = trim((string) (config('services.trends.internal_token') ?: config('services.ai.internal_token', '')));
 
         if ($engineUrl === '' || $internalToken === '') {
             throw new RuntimeException('Trend research engine is not configured.');
