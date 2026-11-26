@@ -31,6 +31,7 @@ class BrandTrendController extends Controller
             'sources' => ['nullable', 'array', 'max:10'],
             'sources.*' => ['string', Rule::in(['rss', 'news_api', 'reddit', 'youtube', 'google_trends'])],
             'sync' => ['nullable', 'boolean'],
+            'force' => ['nullable', 'boolean'],
         ]);
         $sync = $request->boolean('sync');
         [$job, $created] = $this->research->start($brand, $request->user(), $validated, $sync);
@@ -244,6 +245,8 @@ class BrandTrendController extends Controller
             'id' => $job->id,
             'brand_id' => $job->brand_id,
             'status' => $job->status,
+            'result_state' => $job->result_state ?? null,
+            'result_meta' => $job->result_meta ?? null,
             'filters' => $job->filters,
             'sources' => $job->source_status ?? [],
             'error_message' => $job->error_message,

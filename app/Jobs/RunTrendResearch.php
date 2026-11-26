@@ -62,6 +62,8 @@ class RunTrendResearch implements ShouldQueue
                     'name' => $brand->name,
                     'industry' => $brand->industry,
                     'niche' => $brand->niche,
+                    'category' => $brand->category ?? null,
+                    'description' => $brand->description ?? null,
                     'audience' => $brand->audience,
                     'audience_interests' => $brand->audience_interests,
                     'region' => $brand->region,
@@ -109,7 +111,10 @@ class RunTrendResearch implements ShouldQueue
                         ->values()
                         ->all(),
                 ],
-                'filters' => $research->filters,
+                'filters' => array_merge($research->filters, [
+                    'rss_feeds' => array_values(config('services.trends.rss_feeds', [])),
+                    'min_relevance_score' => (int) config('services.trends.min_relevance_score', 25),
+                ]),
             ]);
 
         $response->throw();
@@ -145,6 +150,9 @@ class RunTrendResearch implements ShouldQueue
             'sources.*.status' => ['required', 'string', 'in:ready,success,partial,error,configuration_required,not_implemented'],
             'sources.*.message' => ['nullable', 'string', 'max:1000'],
             'sources.*.result_count' => ['nullable', 'integer', 'min:0'],
+            'result_state' => ['nullable', 'string', 'in:success,no_relevant_topics,all_sources_unavailable,configuration_required'],
+            'filtered_out_count' => ['nullable', 'integer', 'min:0'],
+            'min_relevance_score' => ['nullable', 'integer', 'between:0,100'],
         ])->validate();
 
         $sourceStatuses = $validated['sources'];
@@ -175,7 +183,35 @@ class RunTrendResearch implements ShouldQueue
             }
         }
 
-        $research->update(['source_status' => $sourceStatuses]);
+        $hasFailures = collect($sourceStatuses)->contains(fn (array $source): bool => in_array(
+            $source['status'],
+            ['error', 'configuration_required', 'not_implemented'],
+            true,
+        ));
+
+        // Derive result_state: prefer value from FastAPI; derive locally as fallback
+        $resultState = $validated['result_state'] ?? null;
+        if ($resultState === null) {
+            $allConfigRequired = collect($sourceStatuses)->every(
+                fn (array $s): bool => in_array($s['status'], ['configuration_required', 'not_implemented'], true)
+            );
+            $resultState = match (true) {
+                $allConfigRequired => 'configuration_required',
+                $successfulSources === 0 => 'all_sources_unavailable',
+                count($validated['topics']) === 0 => 'no_relevant_topics',
+                default => 'success',
+            };
+        }
+
+        $research->update([
+            'source_status' => $sourceStatuses,
+            'result_state' => $resultState,
+            'result_meta' => array_filter([
+                'filtered_out_count' => $validated['filtered_out_count'] ?? null,
+                'min_relevance_score' => $validated['min_relevance_score'] ?? null,
+            ]),
+        ]);
+
         if ($successfulSources === 0) {
             $messages = collect($sourceStatuses)->pluck('message')->filter()->implode(' ');
             throw new RuntimeException($messages ?: 'No configured research source returned results.');
@@ -246,9 +282,23 @@ class RunTrendResearch implements ShouldQueue
             ['error', 'configuration_required', 'not_implemented'],
             true,
         ));
+
+        // Derive result_state: prefer value from FastAPI; derive locally as fallback
+        $resultState = $validated['result_state'] ?? null;
+        if ($resultState === null) {
+            $allConfigRequired = collect($sourceStatuses)->every(
+                fn (array $s): bool => in_array($s['status'], ['configuration_required', 'not_implemented'], true)
+            );
+            $resultState = match (true) {
+                $allConfigRequired => 'configuration_required',
+                $successfulSources === 0 => 'all_sources_unavailable',
+                count($validated['topics']) === 0 => 'no_relevant_topics',
+                default => 'success',
+            };
+        }
+
         $research->update([
             'status' => $hasFailures ? 'partial' : 'completed',
-            'source_status' => $sourceStatuses,
             'completed_at' => now(),
         ]);
     }
@@ -262,6 +312,7 @@ class RunTrendResearch implements ShouldQueue
 
         $research->update([
             'status' => 'failed',
+            'result_state' => $research->result_state ?? 'all_sources_unavailable',
             'error_message' => Str::limit($exception?->getMessage() ?? 'Trend research failed.', 2000),
             'completed_at' => now(),
         ]);

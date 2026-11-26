@@ -12,9 +12,11 @@ class TrendResearchJob extends Model
         'user_id',
         'brand_id',
         'status',
+        'result_state',
         'criteria_hash',
         'filters',
         'source_status',
+        'result_meta',
         'error_message',
         'started_at',
         'completed_at',
@@ -25,6 +27,7 @@ class TrendResearchJob extends Model
         return [
             'filters' => 'array',
             'source_status' => 'array',
+            'result_meta' => 'array',
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
         ];

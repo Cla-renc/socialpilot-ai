@@ -92,6 +92,8 @@ return [
         'reddit_client_secret' => env('REDDIT_CLIENT_SECRET'),
         'youtube_api_key' => env('YOUTUBE_API_KEY', env('YOUTUBE_DATA_API_KEY')),
         'google_trends_api_key' => env('GOOGLE_TRENDS_API_KEY'),
+        'dedup_window_seconds' => (int) env('TREND_RESEARCH_DEDUP_WINDOW_SECONDS', 300),
+        'min_relevance_score' => (int) env('TREND_MIN_RELEVANCE_SCORE', 25),
     ],
 
     'social' => [

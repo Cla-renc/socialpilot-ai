@@ -586,5 +586,397 @@ class InternalApiTests(unittest.TestCase):
         self.assertEqual(response.json()["received_id"], 1)
 
 
+# ===========================================================================
+# STAGE 5.6.24 — REMEDIATION TESTS
+# RSS configuration propagation, brand-aware relevance, result-state
+# ===========================================================================
+
+class RemediationTests(unittest.IsolatedAsyncioTestCase):
+    """Tests for the Stage 5.6.24 remediation: RSS propagation, brand relevance
+    scoring, result-state computation, and threshold filtering."""
+
+    def _make_article(self, title: str, summary: str = "", published_at=None) -> dict:
+        from datetime import datetime, timezone as tz
+        return {
+            "source_key": "rss",
+            "source_name": "Test Feed",
+            "title": title,
+            "url": f"https://example.test/{title.replace(' ', '-')}",
+            "published_at": published_at or datetime.now(tz.utc),
+            "summary": summary,
+            "evidence": summary or title,
+            "metrics": {},
+        }
+
+    # ------------------------------------------------------------------
+    # RSS configuration propagation
+    # ------------------------------------------------------------------
+
+    async def test_rss_feeds_from_request_payload_used_over_env(self):
+        """When filters.rss_feeds is provided, it creates a per-request connector."""
+        rss_items = [self._make_article("Hiking safety update", "Trail tips for hikers.")]
+        captured = {}
+
+        class CapturingRssConnector:
+            source_key = "rss"
+            source_name = "Configured RSS feeds"
+
+            def __init__(self, feed_urls):
+                captured["feed_urls"] = feed_urls
+                self.feed_urls = feed_urls
+
+            async def discover(self, queries, days, market=None):
+                return rss_items, 1, []
+
+        import ai_engine.sources.rss as rss_module
+        original_cls = rss_module.RssConnector
+
+        class PatchedOrchestrator(ResearchOrchestrator):
+            def _get_connector(self, key, request_rss_feeds=None):
+                if key == "rss" and request_rss_feeds is not None:
+                    return CapturingRssConnector(request_rss_feeds)
+                return super()._get_connector(key, request_rss_feeds)
+
+        orchestrator = PatchedOrchestrator(
+            rss=FakeRss([], successful=0),  # default RSS has no items
+        )
+        result = await orchestrator.research({
+            "brand": {
+                "id": 1, "industry": "outdoor equipment", "niche": "hiking",
+                "settings": {"brand_keywords": ["hiking", "trail safety"]},
+            },
+            "filters": {
+                "sources": ["rss"],
+                "days": 30,
+                "rss_feeds": ["https://example.com/feed.xml"],
+            },
+        })
+        self.assertIn("feed_urls", captured)
+        self.assertEqual(captured["feed_urls"], ["https://example.com/feed.xml"])
+
+    async def test_invalid_rss_feed_url_rejected(self):
+        """Unsafe/malformed feed URLs are stripped; valid ones pass through."""
+        result_feeds = []
+
+        class CapturingOrchestrator(ResearchOrchestrator):
+            def _get_connector(self, key, request_rss_feeds=None):
+                if key == "rss" and request_rss_feeds is not None:
+                    result_feeds.extend(request_rss_feeds)
+                    return FakeRss([], successful=0)
+                return super()._get_connector(key, request_rss_feeds)
+
+        orchestrator = CapturingOrchestrator(rss=FakeRss([], successful=0))
+        await orchestrator.research({
+            "brand": {"id": 1, "industry": "tech"},
+            "filters": {
+                "sources": ["rss"],
+                "days": 7,
+                "rss_feeds": [
+                    "http://localhost/evil",           # blocked: private IP
+                    "file:///etc/passwd",              # blocked: file scheme
+                    "https://valid.example.com/feed.xml",   # allowed
+                ],
+            },
+        })
+        # Only the valid HTTPS feed should have been forwarded
+        self.assertEqual(result_feeds, ["https://valid.example.com/feed.xml"])
+
+    # ------------------------------------------------------------------
+    # Brand-aware relevance scoring
+    # ------------------------------------------------------------------
+
+    def test_technology_brand_gets_domain_expansion_score(self):
+        """A technology brand should score >= 25 for an AI/startup topic via domain expansion."""
+        from ai_engine.context import BrandContext
+        from ai_engine.scoring import analyze_relevance
+        from datetime import datetime, timezone as tz
+        context = BrandContext.from_payload({
+            "id": 1,
+            "industry": "technology",
+            "niche": None,
+            "settings": {"brand_keywords": []},
+        })
+        score, reason = analyze_relevance(
+            context,
+            "AI Startup Raises $500M in Series D",
+            "Artificial intelligence company secures major funding round.",
+            datetime.now(tz.utc),
+            None,
+        )
+        self.assertGreaterEqual(score, 25, f"Expected >= 25 via domain expansion, got {score}: {reason}")
+        self.assertIn("contextual domain match", reason)
+
+    def test_direct_relevance_tier_scored_75_plus(self):
+        """Keyword match in title should produce direct tier (>= 75)."""
+        from ai_engine.context import BrandContext
+        from ai_engine.scoring import analyze_relevance, relevance_tier
+        from datetime import datetime, timezone as tz
+        context = BrandContext.from_payload({
+            "id": 1,
+            "industry": "outdoor equipment",
+            "niche": "hiking",
+            "settings": {"brand_keywords": ["hiking", "trail safety"]},
+        })
+        score, _ = analyze_relevance(
+            context,
+            "New hiking trail safety guide",
+            "Essential safety tips for trail hikers.",
+            datetime.now(tz.utc),
+            None,
+        )
+        self.assertGreaterEqual(score, 75, f"Expected direct tier (>= 75), got {score}")
+        self.assertEqual(relevance_tier(score), "direct")
+
+    def test_contextual_relevance_tier_50_to_74(self):
+        """Industry domain match without keyword → contextual tier (50–74)."""
+        from ai_engine.context import BrandContext
+        from ai_engine.scoring import analyze_relevance, relevance_tier
+        from datetime import datetime, timezone as tz
+        context = BrandContext.from_payload({
+            "id": 1,
+            "industry": "technology",
+            "niche": None,
+            "settings": {"brand_keywords": []},
+        })
+        score, reason = analyze_relevance(
+            context,
+            "Cloud computing drives enterprise digital transformation",
+            "Enterprises accelerate cloud adoption for cost savings.",
+            datetime.now(tz.utc),
+            None,
+        )
+        # cloud, digital, enterprise ∈ technology domain expansion → contextual
+        self.assertGreaterEqual(score, 25, f"Expected >= 25, got {score}: {reason}")
+
+    def test_adjacent_relevance_tier_25_to_49(self):
+        """Partial domain overlap → adjacent tier (25–49)."""
+        from ai_engine.context import BrandContext
+        from ai_engine.scoring import analyze_relevance, relevance_tier
+        from datetime import datetime, timezone as tz
+        context = BrandContext.from_payload({
+            "id": 1,
+            "industry": "technology",
+            "niche": None,
+            "settings": {"brand_keywords": []},
+        })
+        score, _ = analyze_relevance(
+            context,
+            "New mobile app released",
+            "A consumer mobile application launched for shopping.",
+            datetime.now(tz.utc),
+            None,
+        )
+        # "mobile", "app" ∈ technology expansion but no keyword/niche match
+        tier = relevance_tier(score)
+        self.assertIn(tier, ["adjacent", "contextual", "direct"],
+                      f"Expected at least adjacent (>= 25), got {score}: {tier}")
+
+    def test_irrelevant_topic_excluded(self):
+        """Sports news for a pure tech brand with no overlapping terms → score < 25."""
+        from ai_engine.context import BrandContext
+        from ai_engine.scoring import analyze_relevance
+        from datetime import datetime, timezone as tz
+        context = BrandContext.from_payload({
+            "id": 1,
+            "industry": "technology",
+            "niche": None,
+            "settings": {"brand_keywords": []},
+        })
+        score, reason = analyze_relevance(
+            context,
+            "Local football league championship results",
+            "City team wins regional football championship in extra time.",
+            datetime.now(tz.utc),
+            None,
+        )
+        self.assertLess(score, 25, f"Expected < 25 (irrelevant), got {score}: {reason}")
+
+    # ------------------------------------------------------------------
+    # Result-state computation
+    # ------------------------------------------------------------------
+
+    async def test_result_state_no_relevant_topics(self):
+        """Source returns items; all score below threshold → result_state = no_relevant_topics."""
+        sports_article = self._make_article(
+            "Local football championship results",
+            "City team wins regional football championship.",
+        )
+        orchestrator = ResearchOrchestrator(rss=FakeRss([sports_article], successful=1))
+        result = await orchestrator.research({
+            "brand": {
+                "id": 1,
+                "industry": "technology",
+                "niche": None,
+                "settings": {"brand_keywords": []},
+            },
+            "filters": {"sources": ["rss"], "days": 30, "min_relevance_score": 25},
+        })
+        self.assertEqual(result["result_state"], "no_relevant_topics")
+        self.assertEqual(result["topics"], [])
+        self.assertGreater(result["filtered_out_count"], 0)
+
+    async def test_result_state_success(self):
+        """Relevant topics returned → result_state = success."""
+        article = self._make_article(
+            "Hiking trail safety guide",
+            "Trail safety tips for outdoor hikers.",
+        )
+        orchestrator = ResearchOrchestrator(rss=FakeRss([article], successful=1))
+        result = await orchestrator.research({
+            "brand": {
+                "id": 1,
+                "industry": "outdoor equipment",
+                "niche": "hiking",
+                "settings": {"brand_keywords": ["hiking", "trail safety"]},
+            },
+            "filters": {"sources": ["rss"], "days": 30},
+        })
+        self.assertEqual(result["result_state"], "success")
+        self.assertGreater(len(result["topics"]), 0)
+
+    async def test_result_state_configuration_required(self):
+        """All sources configuration_required → result_state = configuration_required."""
+        orchestrator = ResearchOrchestrator(rss=FakeRss([], successful=0))
+        orchestrator.rss.feed_urls = []  # trigger configuration_required
+        result = await orchestrator.research({
+            "brand": {"id": 1, "industry": "tech"},
+            "filters": {"sources": ["rss"], "days": 30},
+        })
+        self.assertEqual(result["result_state"], "configuration_required")
+        self.assertEqual(result["topics"], [])
+
+    async def test_result_state_all_sources_unavailable(self):
+        """All sources error → result_state = all_sources_unavailable."""
+        orchestrator = ResearchOrchestrator(rss=FakeRss([], successful=0, errors=["timeout"]))
+        result = await orchestrator.research({
+            "brand": {"id": 1, "industry": "tech"},
+            "filters": {"sources": ["rss"], "days": 30},
+        })
+        self.assertEqual(result["result_state"], "all_sources_unavailable")
+
+    # ------------------------------------------------------------------
+    # Brand description boost
+    # ------------------------------------------------------------------
+
+    def test_brand_description_boosts_relevance(self):
+        """Brand description containing 'sustainability' boosts topics about sustainable packaging."""
+        from ai_engine.context import BrandContext
+        from ai_engine.scoring import analyze_relevance
+        from datetime import datetime, timezone as tz
+
+        context_with_desc = BrandContext.from_payload({
+            "id": 1,
+            "industry": "ecommerce",
+            "description": "We sell sustainable packaging solutions for small businesses.",
+            "settings": {"brand_keywords": []},
+        })
+        context_no_desc = BrandContext.from_payload({
+            "id": 2,
+            "industry": "ecommerce",
+            "description": None,
+            "settings": {"brand_keywords": []},
+        })
+        title = "Sustainable packaging demand rises among online retailers"
+        summary = "Eco-friendly packaging becomes mainstream for ecommerce brands."
+        now = datetime.now(tz.utc)
+
+        score_with, _ = analyze_relevance(context_with_desc, title, summary, now, None)
+        score_without, _ = analyze_relevance(context_no_desc, title, summary, now, None)
+        self.assertGreater(score_with, score_without,
+                           f"Description should boost score: {score_with} vs {score_without}")
+
+    # ------------------------------------------------------------------
+    # Multiple RSS feeds
+    # ------------------------------------------------------------------
+
+    async def test_multiple_rss_feeds_combined(self):
+        """Two RSS feeds both return items; both are combined in result articles."""
+        item_a = self._make_article("Hiking gear review", "Top 10 hiking backpacks.")
+        item_b = self._make_article("Trail safety tips", "Essential first aid for hikers.")
+
+        class DualFeedRss:
+            source_key = "rss"
+            source_name = "Configured RSS feeds"
+            feed_urls = ["https://feed-a.example/rss", "https://feed-b.example/rss"]
+
+            async def discover(self, queries, days, market=None):
+                return [item_a, item_b], 2, []
+
+        orchestrator = ResearchOrchestrator(rss=DualFeedRss())
+        result = await orchestrator.research({
+            "brand": {
+                "id": 1,
+                "industry": "outdoor equipment",
+                "niche": "hiking",
+                "settings": {"brand_keywords": ["hiking", "trail safety"]},
+            },
+            "filters": {"sources": ["rss"], "days": 30},
+        })
+        self.assertGreaterEqual(len(result["topics"]), 1)
+
+    async def test_one_rss_feed_fails_other_succeeds(self):
+        """When one feed errors and the other succeeds, source status is 'partial'."""
+        item = self._make_article("Hiking trail safety guide", "Safety for hikers.")
+
+        class PartialFeedRss:
+            source_key = "rss"
+            source_name = "Configured RSS feeds"
+            feed_urls = ["https://feed-ok.example/rss", "https://feed-fail.example/rss"]
+
+            async def discover(self, queries, days, market=None):
+                return [item], 1, ["feed-fail.example: connection refused"]
+
+        orchestrator = ResearchOrchestrator(rss=PartialFeedRss())
+        result = await orchestrator.research({
+            "brand": {
+                "id": 1,
+                "industry": "outdoor equipment",
+                "niche": "hiking",
+                "settings": {"brand_keywords": ["hiking", "trail safety"]},
+            },
+            "filters": {"sources": ["rss"], "days": 30},
+        })
+        rss_status = next(s for s in result["sources"] if s["source_key"] == "rss")
+        self.assertEqual(rss_status["status"], "partial")
+        self.assertGreater(len(result["topics"]), 0)
+
+    # ------------------------------------------------------------------
+    # Relevance tier unit test
+    # ------------------------------------------------------------------
+
+    def test_relevance_tier_function(self):
+        """Scores map to tiers: 0-24 irrelevant, 25-49 adjacent, 50-74 contextual, 75+ direct."""
+        from ai_engine.scoring import relevance_tier
+        cases = [
+            (0, "irrelevant"),
+            (24, "irrelevant"),
+            (25, "adjacent"),
+            (49, "adjacent"),
+            (50, "contextual"),
+            (74, "contextual"),
+            (75, "direct"),
+            (100, "direct"),
+        ]
+        for score, expected in cases:
+            with self.subTest(score=score):
+                self.assertEqual(relevance_tier(score), expected)
+
+    # ------------------------------------------------------------------
+    # result_state field returned in research output
+    # ------------------------------------------------------------------
+
+    async def test_result_state_field_always_present(self):
+        """The research() return value always contains the result_state key."""
+        orchestrator = ResearchOrchestrator(rss=FakeRss([], successful=0))
+        orchestrator.rss.feed_urls = []
+        result = await orchestrator.research({
+            "brand": {"id": 1, "industry": "tech"},
+            "filters": {"sources": ["rss"], "days": 30},
+        })
+        self.assertIn("result_state", result)
+        self.assertIn("filtered_out_count", result)
+        self.assertIn("min_relevance_score", result)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-import json
 import os
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
@@ -11,12 +10,14 @@ from .context import BrandContext, generate_queries
 from .duplicate_detection import duplicate_index, normalize_title
 from .momentum import calculate_momentum
 from .ollama import OllamaAngleGenerator
-from .scoring import analyze_relevance, rank_opportunity, tokens
+from .scoring import analyze_relevance, rank_opportunity, relevance_tier, tokens
 from .sources.google_trends import GoogleTrendsConnector
 from .sources.news_api import NewsApiConnector
 from .sources.reddit import RedditConnector
-from .sources.rss import RssConnector
+from .sources.rss import RssConnector, validate_feed_url
 from .sources.youtube import YouTubeConnector
+
+_DEFAULT_MIN_RELEVANCE = 25
 
 
 class ResearchOrchestrator:
@@ -29,21 +30,28 @@ class ResearchOrchestrator:
         google_trends: GoogleTrendsConnector | None = None,
         angle_generator: OllamaAngleGenerator | None = None,
     ) -> None:
-        feeds = [
+        # Default RSS connector uses env var; will be overridden per-request if
+        # the Laravel payload supplies rss_feeds in filters.
+        env_feeds = [
             item.strip()
             for item in os.getenv("TREND_RSS_FEEDS", "").split(",")
             if item.strip()
         ]
-        self.rss = rss or RssConnector(feeds)
+        self._default_rss_feeds = env_feeds
+        self.rss = rss or RssConnector(env_feeds)
         self.news_api = news_api or NewsApiConnector()
         self.reddit = reddit or RedditConnector()
         self.youtube = youtube or YouTubeConnector()
         self.google_trends = google_trends or GoogleTrendsConnector()
         self.angle_generator = angle_generator or OllamaAngleGenerator()
 
-    def _get_connector(self, key: str) -> Any:
+    def _get_connector(self, key: str, request_rss_feeds: list[str] | None = None) -> Any:
+        if key == "rss":
+            # Prefer request-scoped feed URLs (propagated from Laravel config)
+            if request_rss_feeds is not None:
+                return RssConnector(request_rss_feeds)
+            return self.rss
         connectors = {
-            "rss": self.rss,
             "news_api": self.news_api,
             "reddit": self.reddit,
             "youtube": self.youtube,
@@ -60,6 +68,16 @@ class ResearchOrchestrator:
         if not selected_sources:
             selected_sources = ["rss"]
 
+        # Resolve and validate RSS feeds from request payload (from Laravel config),
+        # fall back to environment variable default.
+        raw_rss_feeds: list[str] = filters.get("rss_feeds") or []
+        request_rss_feeds: list[str] | None = None
+        if raw_rss_feeds:
+            request_rss_feeds = [url for url in raw_rss_feeds if validate_feed_url(url)]
+
+        min_relevance = int(filters.get("min_relevance_score", _DEFAULT_MIN_RELEVANCE))
+        min_relevance = max(0, min(100, min_relevance))
+
         # Deduplicate while preserving order
         ordered_sources = list(dict.fromkeys(selected_sources))
 
@@ -70,9 +88,12 @@ class ResearchOrchestrator:
         requested_days = int(filters.get("days", 30))
         requested_categories = set(filters.get("categories") or [])
 
-        # Process each selected research source through unified connector interface
+        # Process each selected research source
         for source_key in ordered_sources:
-            connector = self._get_connector(source_key)
+            connector = self._get_connector(
+                source_key,
+                request_rss_feeds=(request_rss_feeds if source_key == "rss" else None),
+            )
             if connector is None:
                 source_status.append({
                     "source_key": source_key,
@@ -83,9 +104,10 @@ class ResearchOrchestrator:
                 })
                 continue
 
-            # Special case for RSS feed list configuration
+            # RSS-specific: check that effective feed list is non-empty
             if source_key == "rss":
-                if not getattr(connector, "feed_urls", None):
+                effective_feeds = getattr(connector, "feed_urls", None)
+                if not effective_feeds:
                     source_status.append({
                         "source_key": "rss",
                         "source_name": getattr(connector, "source_name", "Configured RSS feeds"),
@@ -117,7 +139,7 @@ class ResearchOrchestrator:
                 )
                 source_name = getattr(connector, "source_name", source_key)
                 if successful_count == 0:
-                    status = "error" if not errors else "error"
+                    status = "error"
                     message = " ".join(errors) if errors else f"No results returned from {source_name}."
                 elif errors:
                     status = "partial"
@@ -173,6 +195,9 @@ class ResearchOrchestrator:
         now_dt = datetime.now(timezone.utc)
 
         topics = []
+        filtered_out_count = 0
+        filtered_out_reasons: list[str] = []
+
         for group in topic_groups.values():
             evidence_items = group["articles"]
             primary = evidence_items[0]
@@ -180,14 +205,11 @@ class ResearchOrchestrator:
                 (item["summary"] for item in evidence_items if item.get("summary")),
                 None,
             )
-            if not self._matches_brand_terms(
-                context,
-                group["title"],
-                summary_text or "",
-            ):
-                continue
+
             category = self._category(group["title"], context)
             if requested_categories and category not in requested_categories:
+                filtered_out_count += 1
+                filtered_out_reasons.append(f"category mismatch: '{category}' not in {sorted(requested_categories)}")
                 continue
 
             relevance, explanation = analyze_relevance(
@@ -205,10 +227,15 @@ class ResearchOrchestrator:
                 f"{group['title']} {summary_text or ''}".casefold() else None,
             )
 
-            # Historical momentum calculation:
-            # Distinguishes emerging, growing, established, declining, evergreen, time-sensitive,
-            # or None for insufficient historical evidence.
-            # Never classifies as growing simply due to high relevance score!
+            # Apply configurable relevance threshold (replaces the old binary gate)
+            if relevance < min_relevance:
+                filtered_out_count += 1
+                filtered_out_reasons.append(
+                    f"'{group['title']}' scored {relevance} < threshold {min_relevance}: {explanation}"
+                )
+                continue
+
+            # Momentum calculation
             momentum, momentum_evidence = calculate_momentum(
                 title=group["title"],
                 current_researched_at=now_dt,
@@ -230,7 +257,7 @@ class ResearchOrchestrator:
                         context.niche or context.industry,
                     )
                     angle_status = "completed" if angles else "no_suggestions"
-                except (httpx.HTTPError, json.JSONDecodeError, TypeError, ValueError):
+                except (httpx.HTTPError, ValueError, TypeError):
                     angle_status = "failed"
                     angle_error = "Optional Ollama angle generation failed; sourced research is still available."
 
@@ -239,6 +266,7 @@ class ResearchOrchestrator:
                 "description": summary_text,
                 "summary": summary_text,
                 "category": category,
+                "relevance_tier": relevance_tier(relevance),
                 "content_angles": angles,
                 "content_angle_status": angle_status,
                 "content_angle_error": angle_error,
@@ -264,10 +292,37 @@ class ResearchOrchestrator:
             key=lambda item: (item["opportunity_score"], item["relevance_score"]),
             reverse=True,
         )
+
+        # Determine result_state
+        any_successful = any(
+            s["status"] in {"success", "partial"}
+            for s in source_status
+        )
+        all_config_required = all(
+            s["status"] in {"configuration_required", "not_implemented"}
+            for s in source_status
+        ) if source_status else False
+        all_error = all(
+            s["status"] in {"error", "configuration_required", "not_implemented"}
+            for s in source_status
+        ) if source_status else True
+
+        if all_config_required:
+            result_state = "configuration_required"
+        elif all_error and not any_successful:
+            result_state = "all_sources_unavailable"
+        elif not topics:
+            result_state = "no_relevant_topics"
+        else:
+            result_state = "success"
+
         return {
             "topics": topics[:100],
             "sources": source_status,
             "queries": queries,
+            "result_state": result_state,
+            "filtered_out_count": filtered_out_count,
+            "min_relevance_score": min_relevance,
             "momentum_available": any(t["momentum"] is not None for t in topics),
             "researched_at": now_dt.isoformat(),
         }
@@ -290,12 +345,3 @@ class ResearchOrchestrator:
             if any(term in value for term in terms):
                 return category
         return "general"
-
-    @staticmethod
-    def _matches_brand_terms(context: BrandContext, title: str, summary: str) -> bool:
-        content_tokens = tokens(f"{title} {summary}")
-        for term in context.research_terms():
-            term_tokens = tokens(term)
-            if term_tokens and len(content_tokens & term_tokens) >= min(2, len(term_tokens)):
-                return True
-        return False

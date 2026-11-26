@@ -25,7 +25,10 @@ class TrendResearchService
         sort($criteria['sources']);
         $criteriaHash = hash('sha256', json_encode($criteria, JSON_THROW_ON_ERROR));
 
-        $record = DB::transaction(function () use ($brand, $user, $criteria, $criteriaHash): array {
+        $force = (bool) ($filters['force'] ?? false);
+        $dedupWindow = max(0, (int) config('services.trends.dedup_window_seconds', 300));
+
+        $record = DB::transaction(function () use ($brand, $user, $criteria, $criteriaHash, $force, $dedupWindow): array {
             Brand::query()->whereKey($brand->id)->lockForUpdate()->firstOrFail();
             $active = TrendResearchRecord::query()
                 ->where('brand_id', $brand->id)
@@ -36,6 +39,20 @@ class TrendResearchService
 
             if ($active) {
                 return [$active, false];
+            }
+
+            if (! $force && $dedupWindow > 0) {
+                $recent = TrendResearchRecord::query()
+                    ->where('brand_id', $brand->id)
+                    ->where('criteria_hash', $criteriaHash)
+                    ->whereIn('status', ['completed', 'partial'])
+                    ->where('completed_at', '>=', now()->subSeconds($dedupWindow))
+                    ->latest('id')
+                    ->first();
+
+                if ($recent) {
+                    return [$recent, false];
+                }
             }
 
             $record = $brand->trendResearchJobs()->create([

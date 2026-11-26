@@ -265,7 +265,15 @@
             </article>
         @empty
             <div class="card panel">
-                <p class="muted">No researched topics match this brand and filter. Start research with a configured source to discover evidence-backed results.</p>
+                @if (!empty($lastResearch) && $lastResearch->result_state === 'no_relevant_topics')
+                    <p class="muted">Sources returned data but no trends matched your brand relevance threshold. Try running research with more brand keywords configured.</p>
+                @elseif (!empty($lastResearch) && $lastResearch->result_state === 'all_sources_unavailable')
+                    <p class="muted">All research sources are currently unavailable. Check source configuration.</p>
+                @elseif (!empty($lastResearch) && $lastResearch->result_state === 'configuration_required')
+                    <p class="muted">Research sources need configuration before research can run.</p>
+                @else
+                    <p class="muted">No researched topics match this brand and filter. Start research with a configured source to discover evidence-backed results.</p>
+                @endif
             </div>
         @endforelse
         <div style="margin-top:1rem;">{{ $topics->links() }}</div>

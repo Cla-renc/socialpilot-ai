@@ -14,8 +14,11 @@ def _strings(value: Any) -> list[str]:
 
 @dataclass(frozen=True)
 class BrandContext:
+    name: str | None
     industry: str | None
     niche: str | None
+    category: str | None
+    description: str | None
     audience: str | None
     audience_interests: tuple[str, ...]
     region: str | None
@@ -23,6 +26,7 @@ class BrandContext:
     keywords: tuple[str, ...]
     objectives: tuple[str, ...]
     content_categories: tuple[str, ...]
+    content_preferences: tuple[str, ...]
     positive_feedback: tuple[str, ...]
     negative_feedback: tuple[str, ...]
 
@@ -31,8 +35,11 @@ class BrandContext:
         settings = brand.get("settings") or {}
         feedback = brand.get("trend_feedback") or []
         return cls(
+            name=brand.get("name"),
             industry=brand.get("industry"),
             niche=brand.get("niche"),
+            category=brand.get("category"),
+            description=brand.get("description"),
             audience=brand.get("audience"),
             audience_interests=tuple(_strings(brand.get("audience_interests"))),
             region=brand.get("region"),
@@ -40,6 +47,7 @@ class BrandContext:
             keywords=tuple(_strings(settings.get("brand_keywords"))),
             objectives=tuple(_strings(settings.get("marketing_objectives"))),
             content_categories=tuple(_strings(settings.get("content_formats"))),
+            content_preferences=tuple(_strings(settings.get("content_preferences"))),
             positive_feedback=tuple(
                 item["title"]
                 for item in feedback
@@ -53,6 +61,7 @@ class BrandContext:
         )
 
     def research_terms(self) -> tuple[str, ...]:
+        """Return primary brand terms used for query generation (high-precision)."""
         terms = [
             *self.keywords,
             *self.audience_interests,
@@ -60,6 +69,17 @@ class BrandContext:
             self.industry or "",
         ]
         return tuple(dict.fromkeys(term for term in (item.strip() for item in terms) if term))
+
+    def broad_context_terms(self) -> tuple[str, ...]:
+        """Return broader brand signals used for relevance scoring (medium-precision)."""
+        terms = [
+            *self.research_terms(),
+            self.category or "",
+            self.name or "",
+            self.audience or "",
+            *self.content_preferences,
+        ]
+        return tuple(dict.fromkeys(term for term in (item.strip() for item in terms) if term and len(term) > 2))
 
 
 def generate_queries(context: BrandContext) -> list[str]:
