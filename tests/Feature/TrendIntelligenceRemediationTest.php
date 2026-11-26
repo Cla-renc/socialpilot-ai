@@ -530,7 +530,7 @@ class TrendIntelligenceRemediationTest extends TestCase
         sort($criteria['sources']);
         $criteriaHash = hash('sha256', json_encode($criteria, JSON_THROW_ON_ERROR));
 
-        TrendResearchJob::create([
+        $job = TrendResearchJob::create([
             'brand_id' => $brand->id,
             'user_id' => $user->id,
             'status' => 'completed',
@@ -538,6 +538,10 @@ class TrendIntelligenceRemediationTest extends TestCase
             'completed_at' => now()->subMinutes(10), // outside 5-min window
             'filters' => $criteria,
         ]);
+        // Update created_at directly in DB since it is guarded from mass-assignment
+        \Illuminate\Support\Facades\DB::table('trend_research_jobs')
+            ->where('id', $job->id)
+            ->update(['created_at' => now()->subMinutes(10)]);
 
         $this->mockEngineResponse();
 
@@ -702,5 +706,528 @@ class TrendIntelligenceRemediationTest extends TestCase
         $response->assertOk();
         $response->assertJsonStructure(['data' => ['result_state']]);
         $response->assertJsonPath('data.status', 'completed');
+    }
+
+    // =========================================================================
+    // STAGE 5.6.29 — REGRESSION TESTS: result_state, deduplication, RSS
+    // =========================================================================
+
+    /**
+     * 22. result_state='no_relevant_topics' and result_meta persisted when
+     *     FastAPI returns empty topics (candidates evaluated but all filtered out).
+     *     Reproduces the Stage 5.6.28 production defect where filtered_out_count=0
+     *     was silently dropped by array_filter and result_state remained NULL.
+     */
+    public function test_result_state_no_relevant_topics_persisted_with_zero_filtered_count(): void
+    {
+        Http::fake([
+            '*/internal/v1/research' => Http::response([
+                'topics'            => [],
+                'sources'           => [['source_key' => 'google_trends', 'source_name' => 'Google Trends', 'status' => 'success', 'result_count' => 10]],
+                'result_state'      => 'no_relevant_topics',
+                'filtered_out_count' => 10,
+                'min_relevance_score' => 25,
+            ], 200),
+        ]);
+
+        $user  = User::factory()->create();
+        $brand = Brand::factory()->create(['user_id' => $user->id]);
+
+        $response = $this->actingAs($user, 'web')->postJson("/api/v1/brands/{$brand->id}/trends/research", [
+            'days' => 30,
+            'sync' => true,
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.status', 'completed');
+        $response->assertJsonPath('data.result_state', 'no_relevant_topics');
+
+        $job = TrendResearchJob::where('brand_id', $brand->id)->firstOrFail();
+        $this->assertSame('no_relevant_topics', $job->result_state);
+        $this->assertNotNull($job->result_meta, 'result_meta must not be NULL when filtered_out_count > 0');
+        $this->assertSame(10, $job->result_meta['filtered_out_count']);
+        $this->assertSame(25, $job->result_meta['min_relevance_score']);
+    }
+
+    /**
+     * 23. result_state and result_meta persisted when FastAPI sends
+     *     filtered_out_count=0 (all sources configured_required, zero candidates).
+     *     Verifies that filtered_out_count=0 is NOT silently dropped.
+     */
+    public function test_result_meta_preserves_zero_filtered_out_count(): void
+    {
+        Http::fake([
+            '*/internal/v1/research' => Http::response([
+                'topics'            => [],
+                'sources'           => [['source_key' => 'rss', 'source_name' => 'Configured RSS feeds', 'status' => 'configuration_required', 'result_count' => 0]],
+                'result_state'      => 'configuration_required',
+                'filtered_out_count' => 0,
+                'min_relevance_score' => 25,
+            ], 200),
+        ]);
+
+        $user  = User::factory()->create();
+        $brand = Brand::factory()->create(['user_id' => $user->id]);
+
+        $this->actingAs($user, 'web')->postJson("/api/v1/brands/{$brand->id}/trends/research", [
+            'days'    => 30,
+            'sources' => ['rss'],
+            'sync'    => true,
+        ]);
+
+        $job = TrendResearchJob::where('brand_id', $brand->id)->firstOrFail();
+        $this->assertSame('configuration_required', $job->result_state);
+        $this->assertNotNull($job->result_meta, 'result_meta must exist even when filtered_out_count=0');
+        $this->assertSame(0, $job->result_meta['filtered_out_count']);
+    }
+
+    /**
+     * 24. result_state='success' and result_meta persisted when topics are returned.
+     */
+    public function test_result_state_success_and_meta_persisted_with_topics(): void
+    {
+        Http::fake([
+            '*/internal/v1/research' => Http::response([
+                'topics' => [
+                    [
+                        'title'           => 'AI Code Review Tools',
+                        'category'        => 'general',
+                        'relevance_score' => 90,
+                        'relevance_reason' => 'Direct match with software brand.',
+                        'opportunity_score' => 85,
+                        'sources'         => [['source_key' => 'google_trends', 'source_name' => 'Google Trends', 'title' => 'AI Code Review', 'url' => 'https://trends.google.com']],
+                    ],
+                ],
+                'sources'           => [['source_key' => 'google_trends', 'source_name' => 'Google Trends', 'status' => 'success', 'result_count' => 5]],
+                'result_state'      => 'success',
+                'filtered_out_count' => 2,
+                'min_relevance_score' => 25,
+            ], 200),
+        ]);
+
+        $user  = User::factory()->create();
+        $brand = Brand::factory()->create(['user_id' => $user->id]);
+
+        $response = $this->actingAs($user, 'web')->postJson("/api/v1/brands/{$brand->id}/trends/research", [
+            'days' => 30,
+            'sync' => true,
+        ]);
+
+        $response->assertOk();
+        $job = TrendResearchJob::where('brand_id', $brand->id)->firstOrFail();
+        $this->assertSame('completed', $job->status);
+        $this->assertSame('success', $job->result_state);
+        $this->assertSame(2, $job->result_meta['filtered_out_count']);
+        $this->assertSame(25, $job->result_meta['min_relevance_score']);
+    }
+
+    /**
+     * 25. result_state='all_sources_unavailable' stored when all sources error.
+     *     Verifies that result_state is written to DB BEFORE the exception is thrown.
+     */
+    public function test_result_state_all_sources_unavailable_written_before_exception(): void
+    {
+        Http::fake([
+            '*/internal/v1/research' => Http::response([
+                'topics'            => [],
+                'sources'           => [
+                    ['source_key' => 'reddit', 'source_name' => 'Reddit', 'status' => 'error', 'message' => 'Connection failed', 'result_count' => 0],
+                    ['source_key' => 'youtube', 'source_name' => 'YouTube', 'status' => 'error', 'message' => 'Quota exceeded', 'result_count' => 0],
+                ],
+                'result_state'      => 'all_sources_unavailable',
+                'filtered_out_count' => 0,
+                'min_relevance_score' => 25,
+            ], 200),
+        ]);
+
+        $user  = User::factory()->create();
+        $brand = Brand::factory()->create(['user_id' => $user->id]);
+
+        $response = $this->actingAs($user, 'web')->postJson("/api/v1/brands/{$brand->id}/trends/research", [
+            'days'    => 30,
+            'sources' => ['reddit', 'youtube'],
+            'sync'    => true,
+        ]);
+
+        $response->assertStatus(502);
+        $response->assertJsonPath('data.status', 'failed');
+
+        // After failed() runs, result_state should be preserved from the pre-throw write
+        $job = TrendResearchJob::where('brand_id', $brand->id)->firstOrFail();
+        $this->assertSame('failed', $job->status);
+        $this->assertSame('all_sources_unavailable', $job->result_state);
+    }
+
+    /**
+     * 26. result_state='no_relevant_topics' when FastAPI omits result_state
+     *     (local derivation fallback must work correctly).
+     */
+    public function test_result_state_derived_locally_when_fastapi_omits_it(): void
+    {
+        Http::fake([
+            '*/internal/v1/research' => Http::response([
+                'topics'  => [],
+                'sources' => [['source_key' => 'google_trends', 'source_name' => 'Google Trends', 'status' => 'success', 'result_count' => 5]],
+                // result_state intentionally omitted to test local derivation
+                'filtered_out_count'  => 5,
+                'min_relevance_score' => 25,
+            ], 200),
+        ]);
+
+        $user  = User::factory()->create();
+        $brand = Brand::factory()->create(['user_id' => $user->id]);
+
+        $this->actingAs($user, 'web')->postJson("/api/v1/brands/{$brand->id}/trends/research", [
+            'days' => 30,
+            'sync' => true,
+        ]);
+
+        $job = TrendResearchJob::where('brand_id', $brand->id)->firstOrFail();
+        $this->assertSame('no_relevant_topics', $job->result_state, 'Local derivation must set no_relevant_topics when sources succeed but topics are empty');
+        $this->assertSame(5, $job->result_meta['filtered_out_count']);
+    }
+
+    /**
+     * 27. Dedup window matches a completed job created within the window even
+     *     when completed_at visibility may be delayed (fallback dedup by created_at).
+     *     Directly reproduces the Stage 5.6.28 deduplication failure scenario.
+     */
+    public function test_dedup_matches_completed_job_via_created_at_fallback(): void
+    {
+        $user  = User::factory()->create();
+        $brand = Brand::factory()->create(['user_id' => $user->id]);
+
+        $criteria = [
+            'categories'       => [],
+            'geographic_market' => $brand->region,
+            'days'             => 30,
+            'sources'          => ['google_trends', 'rss'],
+        ];
+        sort($criteria['categories']);
+        sort($criteria['sources']);
+        $criteriaHash = hash('sha256', json_encode($criteria, JSON_THROW_ON_ERROR));
+
+        // Simulate a job that completed very recently but whose completed_at
+        // might not yet be visible in a distributed snapshot (created_at=now,
+        // completed_at=null to simulate propagation lag).
+        $job = TrendResearchJob::create([
+            'brand_id'      => $brand->id,
+            'user_id'       => $user->id,
+            'status'        => 'partial',
+            'criteria_hash' => $criteriaHash,
+            'created_at'    => now()->subSeconds(3),   // created 3s ago
+            'completed_at'  => null,                    // completed_at not yet visible
+            'filters'       => $criteria,
+        ]);
+
+        // Force status to partial/completed for the dedup query but keep completed_at null
+        // This simulates a distributed-read-lag scenario.
+        // We use direct DB update to bypass the model's fillable/cast.
+        \Illuminate\Support\Facades\DB::table('trend_research_jobs')
+            ->where('id', $job->id)
+            ->update(['status' => 'partial', 'completed_at' => null]);
+
+        Http::fake(); // Should NOT be called
+
+        $response = $this->actingAs($user, 'web')->postJson("/api/v1/brands/{$brand->id}/trends/research", [
+            'days'    => 30,
+            'sources' => ['google_trends', 'rss'],
+            'sync'    => false,
+        ]);
+
+        Http::assertNothingSent();
+        $response->assertStatus(200);
+        $response->assertJsonPath('message', 'Matching trend research is already active.');
+        $this->assertSame(1, TrendResearchJob::where('brand_id', $brand->id)->count());
+    }
+
+    /**
+     * 28. Dedup by created_at fallback does NOT reuse a failed job.
+     *     Failed jobs must never be treated as successful completions.
+     */
+    public function test_dedup_does_not_reuse_failed_jobs(): void
+    {
+        $user  = User::factory()->create();
+        $brand = Brand::factory()->create(['user_id' => $user->id]);
+
+        $criteria = [
+            'categories'       => [],
+            'geographic_market' => $brand->region,
+            'days'             => 30,
+            'sources'          => ['google_trends', 'rss'],
+        ];
+        sort($criteria['categories']);
+        sort($criteria['sources']);
+        $criteriaHash = hash('sha256', json_encode($criteria, JSON_THROW_ON_ERROR));
+
+        TrendResearchJob::create([
+            'brand_id'      => $brand->id,
+            'user_id'       => $user->id,
+            'status'        => 'failed',
+            'criteria_hash' => $criteriaHash,
+            'created_at'    => now()->subSeconds(10),
+            'completed_at'  => now()->subSeconds(8),
+            'filters'       => $criteria,
+        ]);
+
+        $this->mockEngineResponse();
+
+        $response = $this->actingAs($user, 'web')->postJson("/api/v1/brands/{$brand->id}/trends/research", [
+            'days'    => 30,
+            'sources' => ['google_trends', 'rss'],
+            'sync'    => true,
+        ]);
+
+        Http::assertSent(fn ($req) => str_contains($req->url(), '/internal/v1/research'));
+        $response->assertStatus(200);
+        $this->assertSame(2, TrendResearchJob::where('brand_id', $brand->id)->count(), 'A new job must be created after a failed job');
+    }
+
+    /**
+     * 29. Dedup repeat request within 5 minutes reuses the SAME job immediately
+     *     after a synchronous research completes (the core production scenario).
+     *     This is the direct reproduction of the Stage 5.6.28 deduplication failure.
+     */
+    public function test_immediate_repeat_sync_request_reuses_completed_job(): void
+    {
+        $this->mockEngineResponse();
+
+        $user  = User::factory()->create();
+        $brand = Brand::factory()->create(['user_id' => $user->id]);
+
+        // First synchronous research
+        $res1 = $this->actingAs($user, 'web')->postJson("/api/v1/brands/{$brand->id}/trends/research", [
+            'days'    => 30,
+            'sources' => ['google_trends', 'rss'],
+            'sync'    => true,
+        ]);
+        $res1->assertOk();
+        $jobId1 = $res1->json('data.id');
+        $this->assertNotNull($jobId1);
+
+        // Immediate repeat — must reuse the same job, NOT create a new one
+        $res2 = $this->actingAs($user, 'web')->postJson("/api/v1/brands/{$brand->id}/trends/research", [
+            'days'    => 30,
+            'sources' => ['google_trends', 'rss'],
+            'sync'    => false,
+        ]);
+        $res2->assertStatus(200);
+        $res2->assertJsonPath('message', 'Matching trend research is already active.');
+
+        // Only ONE job should exist
+        $this->assertSame(1, TrendResearchJob::where('brand_id', $brand->id)->count());
+    }
+
+    /**
+     * 30. force=true bypass still works even when a completed job created within
+     *     the window could be matched by the created_at fallback.
+     */
+    public function test_force_true_bypasses_created_at_dedup_fallback(): void
+    {
+        $user  = User::factory()->create();
+        $brand = Brand::factory()->create(['user_id' => $user->id]);
+
+        $criteria = [
+            'categories'       => [],
+            'geographic_market' => $brand->region,
+            'days'             => 30,
+            'sources'          => ['google_trends', 'rss'],
+        ];
+        sort($criteria['categories']);
+        sort($criteria['sources']);
+        $criteriaHash = hash('sha256', json_encode($criteria, JSON_THROW_ON_ERROR));
+
+        TrendResearchJob::create([
+            'brand_id'      => $brand->id,
+            'user_id'       => $user->id,
+            'status'        => 'completed',
+            'criteria_hash' => $criteriaHash,
+            'created_at'    => now()->subSeconds(30),
+            'completed_at'  => now()->subSeconds(28),
+            'filters'       => $criteria,
+        ]);
+
+        $this->mockEngineResponse();
+
+        $response = $this->actingAs($user, 'web')->postJson("/api/v1/brands/{$brand->id}/trends/research", [
+            'days'    => 30,
+            'sources' => ['google_trends', 'rss'],
+            'sync'    => true,
+            'force'   => true,
+        ]);
+
+        Http::assertSent(fn ($req) => str_contains($req->url(), '/internal/v1/research'));
+        $response->assertStatus(200);
+        $this->assertSame(2, TrendResearchJob::where('brand_id', $brand->id)->count());
+    }
+
+    /**
+     * 31. result_state='configuration_required' job is eligible for dedup reuse.
+     */
+    public function test_configuration_required_job_eligible_for_dedup(): void
+    {
+        $user  = User::factory()->create();
+        $brand = Brand::factory()->create(['user_id' => $user->id]);
+
+        $criteria = [
+            'categories'       => [],
+            'geographic_market' => $brand->region,
+            'days'             => 30,
+            'sources'          => ['google_trends', 'rss'],
+        ];
+        sort($criteria['categories']);
+        sort($criteria['sources']);
+        $criteriaHash = hash('sha256', json_encode($criteria, JSON_THROW_ON_ERROR));
+
+        TrendResearchJob::create([
+            'brand_id'      => $brand->id,
+            'user_id'       => $user->id,
+            'status'        => 'partial',
+            'result_state'  => 'configuration_required',
+            'criteria_hash' => $criteriaHash,
+            'created_at'    => now()->subMinutes(1),
+            'completed_at'  => now()->subMinutes(1),
+            'filters'       => $criteria,
+        ]);
+
+        Http::fake();
+
+        $response = $this->actingAs($user, 'web')->postJson("/api/v1/brands/{$brand->id}/trends/research", [
+            'days'    => 30,
+            'sources' => ['google_trends', 'rss'],
+            'sync'    => false,
+        ]);
+
+        Http::assertNothingSent();
+        $response->assertStatus(200);
+        $response->assertJsonPath('message', 'Matching trend research is already active.');
+    }
+
+    /**
+     * 32. Cross-brand deduplication isolation: completed job from brand A
+     *     does NOT suppress a new research request for brand B with identical criteria.
+     */
+    public function test_dedup_does_not_cross_brand_boundaries(): void
+    {
+        $user   = User::factory()->create();
+        $brandA = Brand::factory()->create(['user_id' => $user->id]);
+        $brandB = Brand::factory()->create(['user_id' => $user->id]);
+
+        $criteria = [
+            'categories'       => [],
+            'geographic_market' => null,
+            'days'             => 30,
+            'sources'          => ['google_trends', 'rss'],
+        ];
+        sort($criteria['sources']);
+        $criteriaHash = hash('sha256', json_encode($criteria, JSON_THROW_ON_ERROR));
+
+        TrendResearchJob::create([
+            'brand_id'      => $brandA->id,
+            'user_id'       => $user->id,
+            'status'        => 'completed',
+            'criteria_hash' => $criteriaHash,
+            'created_at'    => now()->subSeconds(30),
+            'completed_at'  => now()->subSeconds(28),
+            'filters'       => $criteria,
+        ]);
+
+        $this->mockEngineResponse();
+
+        $response = $this->actingAs($user, 'web')->postJson("/api/v1/brands/{$brandB->id}/trends/research", [
+            'days'    => 30,
+            'sources' => ['google_trends', 'rss'],
+            'sync'    => true,
+        ]);
+
+        Http::assertSent(fn ($req) => str_contains($req->url(), '/internal/v1/research'));
+        $response->assertStatus(200);
+        $this->assertSame(1, TrendResearchJob::where('brand_id', $brandB->id)->count(), 'Brand B must get its own new job');
+    }
+
+    // =========================================================================
+    // STAGE 5.6.31 — CONCURRENCY AND CURRENT READ REGRESSION TESTS
+    // =========================================================================
+
+    /**
+     * 33. Concurrency test: Simulated concurrent request where Request B begins
+     *     and unblocks after Request A has created an active queued job.
+     *     Request B must detect the active job (via current lockForUpdate read)
+     *     and reuse it without creating a second job.
+     */
+    public function test_concurrent_request_detects_in_flight_job_and_avoids_duplicate(): void
+    {
+        $user  = User::factory()->create();
+        $brand = Brand::factory()->create(['user_id' => $user->id]);
+
+        $service = app(\App\Services\TrendResearchService::class);
+        $filters = ['days' => 30, 'sources' => ['google_trends', 'rss']];
+
+        // Request A starts async (creates 'queued' record)
+        [$jobA, $createdA] = $service->start($brand, $user, $filters, false);
+        $this->assertTrue($createdA);
+        $this->assertSame('queued', $jobA->status);
+
+        // Request B arrives concurrently for the same brand & criteria
+        [$jobB, $createdB] = $service->start($brand, $user, $filters, false);
+        $this->assertFalse($createdB, 'Request B must NOT create a duplicate job while A is in-flight');
+        $this->assertSame($jobA->id, $jobB->id, 'Request B must reuse the active job from Request A');
+        $this->assertSame(1, TrendResearchJob::where('brand_id', $brand->id)->count());
+    }
+
+    /**
+     * 34. Concurrency test: Second request waiting for first transaction to commit
+     *     reuses the completed/partial job rather than inserting a duplicate.
+     */
+    public function test_concurrent_request_waiting_for_completion_reuses_completed_job(): void
+    {
+        $this->mockEngineResponse();
+
+        $user  = User::factory()->create();
+        $brand = Brand::factory()->create(['user_id' => $user->id]);
+
+        $service = app(\App\Services\TrendResearchService::class);
+        $filters = ['days' => 30, 'sources' => ['google_trends', 'rss']];
+
+        // Request A executes synchronously to completion
+        [$jobA, $createdA] = $service->start($brand, $user, $filters, true);
+        $this->assertTrue($createdA);
+        $this->assertContains($jobA->status, ['completed', 'partial']);
+
+        // Request B arrives immediately (within 5-min window)
+        [$jobB, $createdB] = $service->start($brand, $user, $filters, false);
+        $this->assertFalse($createdB, 'Request B must reuse the recently completed job');
+        $this->assertSame($jobA->id, $jobB->id);
+        $this->assertSame(1, TrendResearchJob::where('brand_id', $brand->id)->count());
+    }
+
+    /**
+     * 35. Concurrency test: Cross-tenant isolation under concurrent execution.
+     *     Tenant 1 and Tenant 2 submitting identical criteria simultaneously
+     *     must each receive their own isolated jobs.
+     */
+    public function test_concurrent_requests_for_different_tenants_remain_isolated(): void
+    {
+        $this->mockEngineResponse();
+
+        $user1  = User::factory()->create();
+        $brand1 = Brand::factory()->create(['user_id' => $user1->id]);
+
+        $user2  = User::factory()->create();
+        $brand2 = Brand::factory()->create(['user_id' => $user2->id]);
+
+        $service = app(\App\Services\TrendResearchService::class);
+        $filters = ['days' => 30, 'sources' => ['google_trends', 'rss']];
+
+        [$job1, $created1] = $service->start($brand1, $user1, $filters, false);
+        [$job2, $created2] = $service->start($brand2, $user2, $filters, false);
+
+        $this->assertTrue($created1);
+        $this->assertTrue($created2);
+        $this->assertNotSame($job1->id, $job2->id);
+        $this->assertSame($brand1->id, $job1->brand_id);
+        $this->assertSame($brand2->id, $job2->brand_id);
+        $this->assertSame(1, TrendResearchJob::where('brand_id', $brand1->id)->count());
+        $this->assertSame(1, TrendResearchJob::where('brand_id', $brand2->id)->count());
     }
 }

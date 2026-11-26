@@ -45,8 +45,8 @@ class RunTrendResearch implements ShouldQueue
         }
 
         $research->update([
-            'status' => 'running',
-            'started_at' => now(),
+            'status'        => 'running',
+            'started_at'    => now(),
             'error_message' => null,
         ]);
 
@@ -57,19 +57,19 @@ class RunTrendResearch implements ShouldQueue
             ->timeout(60)
             ->post(rtrim($engineUrl, '/').'/internal/v1/research', [
                 'research_id' => $research->id,
-                'brand' => [
-                    'id' => $brand->id,
-                    'name' => $brand->name,
-                    'industry' => $brand->industry,
-                    'niche' => $brand->niche,
-                    'category' => $brand->category ?? null,
-                    'description' => $brand->description ?? null,
-                    'audience' => $brand->audience,
+                'brand'       => [
+                    'id'                 => $brand->id,
+                    'name'               => $brand->name,
+                    'industry'           => $brand->industry,
+                    'niche'              => $brand->niche,
+                    'category'           => $brand->category ?? null,
+                    'description'        => $brand->description ?? null,
+                    'audience'           => $brand->audience,
                     'audience_interests' => $brand->audience_interests,
-                    'region' => $brand->region,
-                    'language' => $brand->language,
-                    'tone' => $brand->tone,
-                    'settings' => $brand->settings?->only([
+                    'region'             => $brand->region,
+                    'language'           => $brand->language,
+                    'tone'               => $brand->tone,
+                    'settings'           => $brand->settings?->only([
                         'brand_voice',
                         'writing_style',
                         'brand_keywords',
@@ -86,7 +86,7 @@ class RunTrendResearch implements ShouldQueue
                         ->get()
                         ->map(fn (TrendFeedback $feedback): array => [
                             'feedback' => $feedback->feedback_type,
-                            'title' => $feedback->topic?->title,
+                            'title'    => $feedback->topic?->title,
                         ])
                         ->values()
                         ->all(),
@@ -98,127 +98,130 @@ class RunTrendResearch implements ShouldQueue
                         ->limit(100)
                         ->get()
                         ->map(fn (TrendingTopic $historical): array => [
-                            'id' => $historical->id,
-                            'title' => $historical->title,
+                            'id'               => $historical->id,
+                            'title'            => $historical->title,
                             'normalized_title' => $historical->normalized_title,
-                            'relevance_score' => $historical->relevance_score,
+                            'relevance_score'  => $historical->relevance_score,
                             'opportunity_score' => $historical->opportunity_score,
-                            'momentum' => $historical->momentum,
-                            'category' => $historical->category,
-                            'researched_at' => $historical->researched_at?->toIso8601String(),
-                            'source_count' => $historical->sources_count ?? 1,
+                            'momentum'         => $historical->momentum,
+                            'category'         => $historical->category,
+                            'researched_at'    => $historical->researched_at?->toIso8601String(),
+                            'source_count'     => $historical->sources_count ?? 1,
                         ])
                         ->values()
                         ->all(),
                 ],
                 'filters' => array_merge($research->filters, [
-                    'rss_feeds' => array_values(config('services.trends.rss_feeds', [])),
+                    'rss_feeds'          => array_values(config('services.trends.rss_feeds', [])),
                     'min_relevance_score' => (int) config('services.trends.min_relevance_score', 25),
                 ]),
             ]);
 
         $response->throw();
-        $payload = $response->json();
+        $payload   = $response->json();
         $validated = Validator::make($payload, [
-            'topics' => ['present', 'array', 'max:100'],
-            'topics.*.title' => ['required', 'string', 'max:255'],
-            'topics.*.description' => ['nullable', 'string', 'max:5000'],
-            'topics.*.summary' => ['nullable', 'string', 'max:10000'],
-            'topics.*.content_angles' => ['nullable', 'array', 'max:10'],
-            'topics.*.content_angles.*' => ['string', 'max:1000'],
-            'topics.*.content_angle_status' => ['nullable', 'string', 'in:disabled,configuration_required,completed,no_suggestions,failed'],
-            'topics.*.content_angle_error' => ['nullable', 'string', 'max:1000'],
-            'topics.*.category' => ['nullable', 'string', 'max:80'],
-            'topics.*.relevance_score' => ['required', 'integer', 'between:0,100'],
-            'topics.*.relevance_reason' => ['required', 'string', 'max:5000'],
-            'topics.*.momentum' => ['nullable', 'string', 'in:emerging,growing,established,declining,time_sensitive,evergreen'],
-            'topics.*.momentum_evidence' => ['nullable', 'string', 'max:5000'],
-            'topics.*.geographic_market' => ['nullable', 'string', 'max:128'],
-            'topics.*.opportunity_score' => ['required', 'integer', 'between:0,100'],
-            'topics.*.sources' => ['required', 'array', 'min:1'],
-            'topics.*.sources.*.source_key' => ['required', 'string', 'max:80'],
-            'topics.*.sources.*.source_name' => ['required', 'string', 'max:255'],
-            'topics.*.sources.*.title' => ['required', 'string', 'max:500'],
-            'topics.*.sources.*.url' => ['required', 'url', 'max:2048'],
-            'topics.*.sources.*.published_at' => ['nullable', 'date'],
-            'topics.*.sources.*.summary' => ['nullable', 'string', 'max:5000'],
-            'topics.*.sources.*.evidence' => ['nullable', 'string', 'max:5000'],
-            'topics.*.sources.*.metrics' => ['nullable', 'array'],
-            'sources' => ['required', 'array'],
-            'sources.*.source_key' => ['required', 'string', 'max:80'],
-            'sources.*.source_name' => ['nullable', 'string', 'max:255'],
-            'sources.*.status' => ['required', 'string', 'in:ready,success,partial,error,configuration_required,not_implemented'],
-            'sources.*.message' => ['nullable', 'string', 'max:1000'],
-            'sources.*.result_count' => ['nullable', 'integer', 'min:0'],
-            'result_state' => ['nullable', 'string', 'in:success,no_relevant_topics,all_sources_unavailable,configuration_required'],
-            'filtered_out_count' => ['nullable', 'integer', 'min:0'],
-            'min_relevance_score' => ['nullable', 'integer', 'between:0,100'],
+            'topics'                           => ['present', 'array', 'max:100'],
+            'topics.*.title'                   => ['required', 'string', 'max:255'],
+            'topics.*.description'             => ['nullable', 'string', 'max:5000'],
+            'topics.*.summary'                 => ['nullable', 'string', 'max:10000'],
+            'topics.*.content_angles'          => ['nullable', 'array', 'max:10'],
+            'topics.*.content_angles.*'        => ['string', 'max:1000'],
+            'topics.*.content_angle_status'    => ['nullable', 'string', 'in:disabled,configuration_required,completed,no_suggestions,failed'],
+            'topics.*.content_angle_error'     => ['nullable', 'string', 'max:1000'],
+            'topics.*.category'                => ['nullable', 'string', 'max:80'],
+            'topics.*.relevance_score'         => ['required', 'integer', 'between:0,100'],
+            'topics.*.relevance_reason'        => ['required', 'string', 'max:5000'],
+            'topics.*.momentum'                => ['nullable', 'string', 'in:emerging,growing,established,declining,time_sensitive,evergreen'],
+            'topics.*.momentum_evidence'       => ['nullable', 'string', 'max:5000'],
+            'topics.*.geographic_market'       => ['nullable', 'string', 'max:128'],
+            'topics.*.opportunity_score'       => ['required', 'integer', 'between:0,100'],
+            'topics.*.sources'                 => ['required', 'array', 'min:1'],
+            'topics.*.sources.*.source_key'    => ['required', 'string', 'max:80'],
+            'topics.*.sources.*.source_name'   => ['required', 'string', 'max:255'],
+            'topics.*.sources.*.title'         => ['required', 'string', 'max:500'],
+            'topics.*.sources.*.url'           => ['required', 'url', 'max:2048'],
+            'topics.*.sources.*.published_at'  => ['nullable', 'date'],
+            'topics.*.sources.*.summary'       => ['nullable', 'string', 'max:5000'],
+            'topics.*.sources.*.evidence'      => ['nullable', 'string', 'max:5000'],
+            'topics.*.sources.*.metrics'       => ['nullable', 'array'],
+            'sources'                          => ['required', 'array'],
+            'sources.*.source_key'             => ['required', 'string', 'max:80'],
+            'sources.*.source_name'            => ['nullable', 'string', 'max:255'],
+            'sources.*.status'                 => ['required', 'string', 'in:ready,success,partial,error,configuration_required,not_implemented'],
+            'sources.*.message'                => ['nullable', 'string', 'max:1000'],
+            'sources.*.result_count'           => ['nullable', 'integer', 'min:0'],
+            'result_state'                     => ['nullable', 'string', 'in:success,no_relevant_topics,all_sources_unavailable,configuration_required'],
+            'filtered_out_count'               => ['nullable', 'integer', 'min:0'],
+            'min_relevance_score'              => ['nullable', 'integer', 'between:0,100'],
         ])->validate();
 
-        $sourceStatuses = $validated['sources'];
+        $sourceStatuses   = $validated['sources'];
         $successfulSources = collect($sourceStatuses)
             ->whereIn('status', ['ready', 'success', 'partial'])
             ->count();
 
+        // ── Update TrendSource registry ───────────────────────────────────────
         foreach ($sourceStatuses as $sourceStatus) {
             $source = TrendSource::query()->firstOrCreate(
                 ['source_key' => $sourceStatus['source_key']],
                 [
-                    'name' => $sourceStatus['source_name'] ?? Str::headline($sourceStatus['source_key']),
-                    'type' => $sourceStatus['source_key'],
+                    'name'              => $sourceStatus['source_name'] ?? Str::headline($sourceStatus['source_key']),
+                    'type'              => $sourceStatus['source_key'],
                     'connection_status' => 'configuration_required',
                 ],
             );
             if ($source && in_array($sourceStatus['status'], ['error', 'configuration_required'], true)) {
                 $source->update([
                     'connection_status' => $sourceStatus['status'],
-                    'last_error' => $sourceStatus['message'] ?? null,
+                    'last_error'        => $sourceStatus['message'] ?? null,
                 ]);
             } elseif ($source && in_array($sourceStatus['status'], ['success', 'partial'], true)) {
                 $source->update([
-                    'connection_status' => 'ready',
+                    'connection_status'          => 'ready',
                     'last_successful_research_at' => now(),
-                    'last_error' => null,
+                    'last_error'                 => null,
                 ]);
             }
         }
 
-        $hasFailures = collect($sourceStatuses)->contains(fn (array $source): bool => in_array(
-            $source['status'],
-            ['error', 'configuration_required', 'not_implemented'],
-            true,
-        ));
-
-        // Derive result_state: prefer value from FastAPI; derive locally as fallback
+        // ── Derive result_state: prefer value from FastAPI; derive locally as fallback ──
         $resultState = $validated['result_state'] ?? null;
         if ($resultState === null) {
             $allConfigRequired = collect($sourceStatuses)->every(
                 fn (array $s): bool => in_array($s['status'], ['configuration_required', 'not_implemented'], true)
             );
             $resultState = match (true) {
-                $allConfigRequired => 'configuration_required',
-                $successfulSources === 0 => 'all_sources_unavailable',
+                $allConfigRequired              => 'configuration_required',
+                $successfulSources === 0        => 'all_sources_unavailable',
                 count($validated['topics']) === 0 => 'no_relevant_topics',
-                default => 'success',
+                default                         => 'success',
             };
         }
 
-        $research->update([
-            'source_status' => $sourceStatuses,
-            'result_state' => $resultState,
-            'result_meta' => array_filter([
-                'filtered_out_count' => $validated['filtered_out_count'] ?? null,
-                'min_relevance_score' => $validated['min_relevance_score'] ?? null,
-            ]),
-        ]);
+        // ── Build result_meta preserving zero values explicitly ───────────────
+        $resultMeta = [];
+        if (isset($validated['filtered_out_count'])) {
+            $resultMeta['filtered_out_count'] = (int) $validated['filtered_out_count'];
+        }
+        if (isset($validated['min_relevance_score'])) {
+            $resultMeta['min_relevance_score'] = (int) $validated['min_relevance_score'];
+        }
 
+        // ── When all sources are unavailable, fail the job immediately ────────
         if ($successfulSources === 0) {
             $messages = collect($sourceStatuses)->pluck('message')->filter()->implode(' ');
+            // Persist source_status and result_state before failing
+            $research->update([
+                'source_status' => $sourceStatuses,
+                'result_state'  => $resultState,
+                'result_meta'   => $resultMeta ?: null,
+            ]);
             throw new RuntimeException($messages ?: 'No configured research source returned results.');
         }
 
+        // ── Persist topics and sources ────────────────────────────────────────
         foreach ($validated['topics'] as $topicData) {
-            $title = Str::squish($topicData['title']);
+            $title     = Str::squish($topicData['title']);
             $normalized = Str::lower($title);
             $topic = TrendingTopic::query()->firstOrCreate(
                 [
@@ -226,21 +229,21 @@ class RunTrendResearch implements ShouldQueue
                     'normalized_title' => $normalized,
                 ],
                 [
-                    'brand_id' => $research->brand_id,
-                    'title' => $title,
-                    'description' => $topicData['description'] ?? null,
-                    'summary' => $topicData['summary'] ?? null,
-                    'content_angles' => $topicData['content_angles'] ?? [],
+                    'brand_id'             => $research->brand_id,
+                    'title'                => $title,
+                    'description'          => $topicData['description'] ?? null,
+                    'summary'              => $topicData['summary'] ?? null,
+                    'content_angles'       => $topicData['content_angles'] ?? [],
                     'content_angle_status' => $topicData['content_angle_status'] ?? 'unavailable',
-                    'content_angle_error' => $topicData['content_angle_error'] ?? null,
-                    'category' => $topicData['category'] ?? 'general',
-                    'relevance_score' => $topicData['relevance_score'],
-                    'relevance_reason' => $topicData['relevance_reason'],
-                    'momentum' => $topicData['momentum'] ?? null,
-                    'momentum_evidence' => $topicData['momentum_evidence'] ?? null,
-                    'geographic_market' => $topicData['geographic_market'] ?? null,
-                    'opportunity_score' => $topicData['opportunity_score'],
-                    'researched_at' => now(),
+                    'content_angle_error'  => $topicData['content_angle_error'] ?? null,
+                    'category'             => $topicData['category'] ?? 'general',
+                    'relevance_score'      => $topicData['relevance_score'],
+                    'relevance_reason'     => $topicData['relevance_reason'],
+                    'momentum'             => $topicData['momentum'] ?? null,
+                    'momentum_evidence'    => $topicData['momentum_evidence'] ?? null,
+                    'geographic_market'    => $topicData['geographic_market'] ?? null,
+                    'opportunity_score'    => $topicData['opportunity_score'],
+                    'researched_at'        => now(),
                 ],
             );
 
@@ -248,30 +251,30 @@ class RunTrendResearch implements ShouldQueue
                 $source = TrendSource::query()->firstOrCreate(
                     ['source_key' => $sourceData['source_key']],
                     [
-                        'name' => $sourceData['source_name'],
-                        'type' => $sourceData['source_key'],
+                        'name'              => $sourceData['source_name'],
+                        'type'              => $sourceData['source_key'],
                         'connection_status' => 'ready',
                     ],
                 );
                 $source->update([
                     'last_successful_research_at' => now(),
-                    'last_error' => null,
+                    'last_error'                  => null,
                 ]);
                 TrendTopicSource::query()->firstOrCreate(
                     [
                         'trend_topic_id' => $topic->id,
-                        'url_hash' => hash('sha256', $sourceData['url']),
+                        'url_hash'       => hash('sha256', $sourceData['url']),
                     ],
                     [
                         'trend_source_id' => $source->id,
-                        'source_key' => $sourceData['source_key'],
-                        'source_name' => $sourceData['source_name'],
-                        'title' => $sourceData['title'],
-                        'url' => $sourceData['url'],
-                        'published_at' => $sourceData['published_at'] ?? null,
-                        'summary' => $sourceData['summary'] ?? null,
-                        'evidence' => $sourceData['evidence'] ?? null,
-                        'metrics' => Arr::only($sourceData['metrics'] ?? [], ['views', 'likes', 'comments', 'interest']),
+                        'source_key'      => $sourceData['source_key'],
+                        'source_name'     => $sourceData['source_name'],
+                        'title'           => $sourceData['title'],
+                        'url'             => $sourceData['url'],
+                        'published_at'    => $sourceData['published_at'] ?? null,
+                        'summary'         => $sourceData['summary'] ?? null,
+                        'evidence'        => $sourceData['evidence'] ?? null,
+                        'metrics'         => Arr::only($sourceData['metrics'] ?? [], ['views', 'likes', 'comments', 'interest']),
                     ],
                 );
             }
@@ -283,23 +286,16 @@ class RunTrendResearch implements ShouldQueue
             true,
         ));
 
-        // Derive result_state: prefer value from FastAPI; derive locally as fallback
-        $resultState = $validated['result_state'] ?? null;
-        if ($resultState === null) {
-            $allConfigRequired = collect($sourceStatuses)->every(
-                fn (array $s): bool => in_array($s['status'], ['configuration_required', 'not_implemented'], true)
-            );
-            $resultState = match (true) {
-                $allConfigRequired => 'configuration_required',
-                $successfulSources === 0 => 'all_sources_unavailable',
-                count($validated['topics']) === 0 => 'no_relevant_topics',
-                default => 'success',
-            };
-        }
-
+        // ── Single atomic final update: status + result_state + result_meta ───
+        // This is the ONE authoritative write for all completion fields.
+        // result_state and result_meta must always be written here together
+        // with status and completed_at to guarantee consistency.
         $research->update([
-            'status' => $hasFailures ? 'partial' : 'completed',
-            'completed_at' => now(),
+            'status'        => $hasFailures ? 'partial' : 'completed',
+            'completed_at'  => now(),
+            'source_status' => $sourceStatuses,
+            'result_state'  => $resultState,
+            'result_meta'   => $resultMeta ?: null,
         ]);
     }
 
@@ -311,10 +307,10 @@ class RunTrendResearch implements ShouldQueue
         }
 
         $research->update([
-            'status' => 'failed',
-            'result_state' => $research->result_state ?? 'all_sources_unavailable',
+            'status'        => 'failed',
+            'result_state'  => $research->result_state ?? 'all_sources_unavailable',
             'error_message' => Str::limit($exception?->getMessage() ?? 'Trend research failed.', 2000),
-            'completed_at' => now(),
+            'completed_at'  => now(),
         ]);
     }
 }

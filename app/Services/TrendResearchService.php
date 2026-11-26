@@ -34,6 +34,7 @@ class TrendResearchService
                 ->where('brand_id', $brand->id)
                 ->where('criteria_hash', $criteriaHash)
                 ->whereIn('status', ['queued', 'running'])
+                ->lockForUpdate()
                 ->latest('id')
                 ->first();
 
@@ -42,13 +43,31 @@ class TrendResearchService
             }
 
             if (! $force && $dedupWindow > 0) {
+                // Primary dedup: completed/partial jobs with a recent completed_at
+                // (handles the common path and async completions).
+                $windowStart = now()->subSeconds($dedupWindow);
                 $recent = TrendResearchRecord::query()
                     ->where('brand_id', $brand->id)
                     ->where('criteria_hash', $criteriaHash)
                     ->whereIn('status', ['completed', 'partial'])
-                    ->where('completed_at', '>=', now()->subSeconds($dedupWindow))
+                    ->where('completed_at', '>=', $windowStart)
+                    ->lockForUpdate()
                     ->latest('id')
                     ->first();
+
+                // Fallback dedup: job created within the window whose completed_at
+                // has not yet propagated (e.g. distributed-DB visibility lag for
+                // synchronous same-request completions on TiDB Cloud Serverless).
+                if (! $recent) {
+                    $recent = TrendResearchRecord::query()
+                        ->where('brand_id', $brand->id)
+                        ->where('criteria_hash', $criteriaHash)
+                        ->whereIn('status', ['completed', 'partial'])
+                        ->where('created_at', '>=', $windowStart)
+                        ->lockForUpdate()
+                        ->latest('id')
+                        ->first();
+                }
 
                 if ($recent) {
                     return [$recent, false];
