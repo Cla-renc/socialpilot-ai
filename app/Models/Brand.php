@@ -96,6 +96,11 @@ class Brand extends Model
         return $this->hasMany(TrendingTopic::class);
     }
 
+    public function trendRecommendations(): HasMany
+    {
+        return $this->hasMany(TrendRecommendation::class);
+    }
+
     public function trendPreference(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(BrandTrendPreference::class);

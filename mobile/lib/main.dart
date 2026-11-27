@@ -1994,6 +1994,46 @@ String _formatDashboardDate(dynamic value) {
       '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
 }
 
+String formatPublishedAt(dynamic value, {DateTime? clock}) {
+  if (value == null) return 'Publication date unavailable';
+  final raw = value.toString().trim();
+  if (raw.isEmpty) return 'Publication date unavailable';
+  final parsed = DateTime.tryParse(raw);
+  if (parsed == null) return raw;
+
+  final now = (clock ?? DateTime.now()).toUtc();
+  final utcDate = parsed.isUtc ? parsed : parsed.toUtc();
+  final difference = now.difference(utcDate);
+
+  if (difference.isNegative || difference.inSeconds < 45) {
+    return 'Just now';
+  }
+  if (difference.inMinutes < 60) {
+    final m = difference.inMinutes;
+    return m == 1 ? '1 minute ago' : '$m minutes ago';
+  }
+  if (difference.inHours < 24) {
+    final h = difference.inHours;
+    return h == 1 ? '1 hour ago' : '$h hours ago';
+  }
+  if (difference.inDays == 1) {
+    return 'Yesterday';
+  }
+  if (difference.inDays < 7) {
+    return '${difference.inDays} days ago';
+  }
+  if (difference.inDays < 30) {
+    final weeks = (difference.inDays / 7).floor();
+    return weeks == 1 ? '1 week ago' : '$weeks weeks ago';
+  }
+  if (difference.inDays < 365) {
+    final months = (difference.inDays / 30).floor();
+    return months == 1 ? '1 month ago' : '$months months ago';
+  }
+  final years = (difference.inDays / 365).floor();
+  return years == 1 ? '1 year ago' : '$years years ago';
+}
+
 String _brandName(List<Map<String, dynamic>> brands, int? brandId) {
   for (final brand in brands) {
     if (brand['id'] == brandId) return brand['name'].toString();
@@ -3824,6 +3864,7 @@ class _TrendIntelligenceScreenState extends State<TrendIntelligenceScreen> {
   final TextEditingController _marketController = TextEditingController();
   List<Brand> _brands = const [];
   List<Map<String, dynamic>> _topics = const [];
+  List<Map<String, dynamic>> _recommendations = const [];
   List<Map<String, dynamic>> _sources = const [];
   Map<String, dynamic>? _research;
   int? _brandId;
@@ -3870,6 +3911,7 @@ class _TrendIntelligenceScreenState extends State<TrendIntelligenceScreen> {
         setState(() {
           _brands = brands;
           _topics = const [];
+          _recommendations = const [];
           _sources = const [];
           _research = null;
           _brandId = null;
@@ -3895,6 +3937,9 @@ class _TrendIntelligenceScreenState extends State<TrendIntelligenceScreen> {
         ),
         _service.fetchTrendSources(selected),
         _service.fetchTrendResearchStatus(selected),
+        _service
+            .fetchTrendRecommendations(selected)
+            .catchError((_) => <Map<String, dynamic>>[]),
       ]);
       final selectedBrand = brands.firstWhere((brand) => brand.id == selected);
       final readySourceKeys = (results[1] as List<Map<String, dynamic>>)
@@ -3907,6 +3952,7 @@ class _TrendIntelligenceScreenState extends State<TrendIntelligenceScreen> {
         _topics = results[0] as List<Map<String, dynamic>>;
         _sources = results[1] as List<Map<String, dynamic>>;
         _research = results[2] as Map<String, dynamic>?;
+        _recommendations = results[3] as List<Map<String, dynamic>>;
         if (_sourceSelectionBrandId != selected) {
           _selectedSourceKeys
             ..clear()
@@ -3996,6 +4042,21 @@ class _TrendIntelligenceScreenState extends State<TrendIntelligenceScreen> {
     if (mounted) await _load();
   }
 
+  Future<void> _updateRecStatus(Map<String, dynamic> rec, String status) async {
+    final brandId = _brandId;
+    final recId = int.tryParse(rec['id']?.toString() ?? '');
+    if (brandId == null || recId == null) return;
+    try {
+      await _service.updateRecommendationStatus(brandId, recId, status);
+      if (mounted) {
+        _showMessage(context, 'Recommendation marked as $status.');
+        _load();
+      }
+    } catch (e) {
+      if (mounted) _showMessage(context, e.toString());
+    }
+  }
+
   Future<void> _applyFilters() async {
     final brandId = _brandId;
     if (brandId == null) return;
@@ -4032,6 +4093,130 @@ class _TrendIntelligenceScreenState extends State<TrendIntelligenceScreen> {
         });
       }
     }
+  }
+
+  Map<String, dynamic>? _sourceResearchStatus(String key) {
+    final sources = _research?['sources'];
+    if (sources is List) {
+      for (final s in sources) {
+        if (s is Map && s['source_key'] == key) {
+          return Map<String, dynamic>.from(s);
+        }
+      }
+    }
+    return null;
+  }
+
+  String _latestResearchSubtitle() {
+    if (_research == null) return '';
+    final sources = _research!['sources'];
+    final sourceWarnings = <String>[];
+    if (sources is List) {
+      for (final s in sources) {
+        if (s is Map &&
+            s['message'] != null &&
+            s['message'].toString().trim().isNotEmpty) {
+          final name = s['source_name']?.toString() ??
+              s['source_key']?.toString() ??
+              'Source';
+          sourceWarnings.add('$name: ${s['message'].toString().trim()}');
+        }
+      }
+    }
+    if (sourceWarnings.isNotEmpty) {
+      if (_topics.isNotEmpty) {
+        return '${sourceWarnings.join('\n')}\nAvailable topics are displayed below.';
+      }
+      return sourceWarnings.join('\n');
+    }
+    if (_research!['status'] == 'partial' && _topics.isNotEmpty) {
+      return 'Some sources encountered errors, but available topics are displayed below.';
+    }
+    return _research!['error_message']?.toString() ??
+        (_research!['created_at']?.toString() ?? '');
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    final state = _research?['result_state']?.toString();
+    final status = _research?['status']?.toString();
+
+    String title;
+    String description;
+    IconData icon;
+    Widget? action;
+
+    if (state == 'no_relevant_topics') {
+      icon = Icons.filter_alt_off_outlined;
+      title = 'No relevant topics found';
+      description =
+          'Sources returned data, but no topics met your brand relevance threshold. '
+          'Try adding more brand keywords or lowering the minimum relevance score.';
+    } else if (state == 'all_sources_unavailable' || status == 'failed') {
+      icon = Icons.cloud_off_outlined;
+      title = 'All research sources unavailable';
+      description =
+          'All research sources are currently unavailable. Check your source configurations or network connection and try again.';
+      action = OutlinedButton.icon(
+        onPressed: _startResearch,
+        icon: const Icon(Icons.refresh),
+        label: const Text('Retry research'),
+      );
+    } else if (state == 'configuration_required') {
+      icon = Icons.settings_suggest_outlined;
+      title = 'Configuration required';
+      description =
+          'Research sources need configuration before research can run. Please configure API keys or RSS feeds.';
+    } else if (status == 'partial' || state == 'partial') {
+      icon = Icons.warning_amber_rounded;
+      title = 'Partial research: no topics found';
+      final subtitle = _latestResearchSubtitle();
+      description = subtitle.isNotEmpty && subtitle.contains(':')
+          ? subtitle
+          : 'Some sources failed, and no topics were found from remaining sources.';
+      action = OutlinedButton.icon(
+        onPressed: _startResearch,
+        icon: const Icon(Icons.refresh),
+        label: const Text('Retry research'),
+      );
+    } else if (state == 'success') {
+      icon = Icons.search_off_outlined;
+      title = 'No topics match current filters';
+      description =
+          'Research completed successfully, but no topics match your current filter criteria.';
+    } else {
+      icon = Icons.insights_outlined;
+      title = 'No trend research yet';
+      description =
+          'No sourced topics match this brand yet. Configure an available source and run research.';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 48, color: Theme.of(context).colorScheme.outline),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              description,
+              style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            if (action != null) ...[
+              const SizedBox(height: 16),
+              action,
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -4163,32 +4348,58 @@ class _TrendIntelligenceScreenState extends State<TrendIntelligenceScreen> {
                           ),
                           const SizedBox(height: 12),
                           for (final source in _sources)
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(
-                                source['name']?.toString() ?? 'Research source',
-                              ),
-                              subtitle: Text(
-                                source['last_error']?.toString() ??
-                                    source['connection_status']?.toString() ??
-                                    'Configuration required',
-                              ),
-                              trailing: Checkbox(
-                                value: _selectedSourceKeys.contains(
-                                  source['key'],
-                                ),
-                                onChanged:
-                                    source['connection_status'] == 'ready'
-                                    ? (selected) => setState(() {
-                                        final key = source['key'].toString();
-                                        if (selected == true) {
-                                          _selectedSourceKeys.add(key);
-                                        } else {
-                                          _selectedSourceKeys.remove(key);
-                                        }
-                                      })
-                                    : null,
-                              ),
+                            Builder(
+                              builder: (context) {
+                                final key = source['key']?.toString() ?? '';
+                                final srcStatus = _sourceResearchStatus(key);
+                                final message = (srcStatus != null &&
+                                        srcStatus['message'] != null &&
+                                        srcStatus['message'].toString().trim().isNotEmpty)
+                                    ? srcStatus['message'].toString().trim()
+                                    : null;
+                                return ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  title: Text(
+                                    source['name']?.toString() ?? 'Research source',
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        source['last_error']?.toString() ??
+                                            source['connection_status']?.toString() ??
+                                            'Configuration required',
+                                      ),
+                                      if (message != null) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          message,
+                                          style: TextStyle(
+                                            color: Theme.of(context).colorScheme.error,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  trailing: Checkbox(
+                                    value: _selectedSourceKeys.contains(
+                                      source['key'],
+                                    ),
+                                    onChanged:
+                                        source['connection_status'] == 'ready'
+                                        ? (selected) => setState(() {
+                                            if (selected == true) {
+                                              _selectedSourceKeys.add(key);
+                                            } else {
+                                              _selectedSourceKeys.remove(key);
+                                            }
+                                          })
+                                        : null,
+                                  ),
+                                );
+                              },
                             ),
                           const SizedBox(height: 8),
                           Text(
@@ -4246,12 +4457,14 @@ class _TrendIntelligenceScreenState extends State<TrendIntelligenceScreen> {
                   if (_research != null)
                     Card(
                       child: ListTile(
+                        leading: _research!['status'] == 'partial'
+                            ? const Icon(Icons.warning_amber_rounded, color: Colors.orange)
+                            : null,
                         title: Text(
                           'Latest research · ${_research!['status']}',
                         ),
                         subtitle: Text(
-                          _research!['error_message']?.toString() ??
-                              (_research!['created_at']?.toString() ?? ''),
+                          _latestResearchSubtitle(),
                         ),
                         trailing: IconButton(
                           tooltip: 'Refresh research status',
@@ -4365,14 +4578,94 @@ class _TrendIntelligenceScreenState extends State<TrendIntelligenceScreen> {
                       _applyFilters();
                     },
                   ),
-                  if (_topics.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Text(
-                        'No sourced topics match this brand yet. Configure an available source and run research.',
-                        textAlign: TextAlign.center,
+                  if (_recommendations.isNotEmpty) ...[
+                    const Divider(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Brand Content Recommendations',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                        Chip(
+                          label: Text('${_recommendations.length} Tailored'),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    for (final rec in _recommendations)
+                      Card(
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Chip(
+                                    label: Text(
+                                      '${rec['relevance_classification']?.toString().toUpperCase()} · ${rec['score']}%',
+                                      style: const TextStyle(fontSize: 11),
+                                    ),
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                  Chip(
+                                    label: Text(
+                                      '${rec['suggested_format'] ?? 'short_video'}',
+                                      style: const TextStyle(fontSize: 11),
+                                    ),
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                rec['topic']?['title']?.toString() ?? 'Recommended Concept',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                              if (rec['content_package']?['recommended_angle'] != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Angle: ${rec['content_package']['recommended_angle']}',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                                ),
+                              ],
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  TextButton.icon(
+                                    onPressed: () => _updateRecStatus(rec, 'saved'),
+                                    icon: const Icon(Icons.bookmark_add, size: 16),
+                                    label: const Text('Save', style: TextStyle(fontSize: 12)),
+                                  ),
+                                  TextButton.icon(
+                                    onPressed: () => _updateRecStatus(rec, 'dismissed'),
+                                    icon: const Icon(Icons.close, size: 16, color: Colors.red),
+                                    label: const Text('Dismiss', style: TextStyle(fontSize: 12, color: Colors.red)),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    )
+                    const Divider(height: 32),
+                    Text(
+                      'All Discovered Topics',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  if (_topics.isEmpty)
+                    _buildEmptyState(context)
                   else
                     for (final topic in _topics)
                       Card(
@@ -4496,9 +4789,12 @@ class TrendDetailScreen extends StatelessWidget {
                     source['source_name']?.toString() ??
                     'Source',
               ),
-              subtitle: Text(
-                source['published_at']?.toString() ??
+              subtitle: Tooltip(
+                message: source['published_at']?.toString() ??
                     'Publication date unavailable',
+                child: Text(
+                  formatPublishedAt(source['published_at']),
+                ),
               ),
               trailing: const Icon(Icons.open_in_new),
               onTap: () {
@@ -6951,6 +7247,54 @@ class AuthService {
       'POST',
       '/brands/$brandId/trends/$topicId/feedback',
       body: {'feedback': feedback, 'note': note},
+    );
+    return _responseObject(response, 'data');
+  }
+
+  Future<List<Map<String, dynamic>>> fetchTrendRecommendations(
+    int brandId, {
+    String? status,
+    String? classification,
+    String? platform,
+    String? format,
+    int? minScore,
+  }) async {
+    final query = <String, String>{'per_page': '50'};
+    if (status != null && status.isNotEmpty) query['status'] = status;
+    if (classification != null && classification.isNotEmpty) query['classification'] = classification;
+    if (platform != null && platform.isNotEmpty) query['platform'] = platform;
+    if (format != null && format.isNotEmpty) query['format'] = format;
+    if (minScore != null) query['min_score'] = '$minScore';
+    final response = await _request(
+      'GET',
+      '/brands/$brandId/recommendations?${Uri(queryParameters: query).query}',
+    );
+    if (response['data'] is! List) return const [];
+    return _responseList(response, 'data');
+  }
+
+  Future<Map<String, dynamic>> updateRecommendationStatus(
+    int brandId,
+    int recommendationId,
+    String status,
+  ) async {
+    final response = await _request(
+      'POST',
+      '/brands/$brandId/recommendations/$recommendationId/status',
+      body: {'status': status},
+    );
+    return _responseObject(response, 'data');
+  }
+
+  Future<Map<String, dynamic>> submitRecommendationFeedback(
+    int brandId,
+    int recommendationId,
+    String feedback,
+  ) async {
+    final response = await _request(
+      'POST',
+      '/brands/$brandId/recommendations/$recommendationId/feedback',
+      body: {'feedback': feedback},
     );
     return _responseObject(response, 'data');
   }

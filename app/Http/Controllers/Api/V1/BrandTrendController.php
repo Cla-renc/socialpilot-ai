@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\BrandTrendPreference;
 use App\Models\TrendFeedback;
+use App\Models\TrendRecommendation;
 use App\Models\TrendResearchJob;
 use App\Models\TrendingTopic;
 use App\Services\TrendResearchService;
@@ -91,6 +92,8 @@ class BrandTrendController extends Controller
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
             'saved_only' => ['nullable', 'boolean'],
+            'cross_platform_only' => ['nullable', 'boolean'],
+            'cluster_id' => ['nullable', 'string', 'max:64'],
             'sort' => ['nullable', Rule::in(['opportunity', 'relevance', 'recent'])],
             'per_page' => ['nullable', 'integer', 'between:1,50'],
             'page' => ['nullable', 'integer', 'min:1'],
@@ -131,6 +134,12 @@ class BrandTrendController extends Controller
             $query->whereHas('feedback', fn ($feedback) => $feedback
                 ->where('user_id', $request->user()->id)
                 ->where('feedback_type', 'saved'));
+        }
+        if ($request->boolean('cross_platform_only')) {
+            $query->where('is_cross_platform', true);
+        }
+        if (! empty($validated['cluster_id'])) {
+            $query->where('cluster_id', $validated['cluster_id']);
         }
 
         match ($validated['sort'] ?? 'recent') {
@@ -234,6 +243,98 @@ class BrandTrendController extends Controller
         return response()->json(['data' => $feedback]);
     }
 
+    public function recommendations(Request $request, Brand $brand)
+    {
+        $this->authorizeBrand($request, $brand);
+        $validated = $request->validate([
+            'status' => ['nullable', Rule::in(['generated', 'reviewed', 'saved', 'dismissed', 'used'])],
+            'classification' => ['nullable', Rule::in(['direct', 'adjacent', 'weak'])],
+            'platform' => ['nullable', 'string', 'max:32'],
+            'format' => ['nullable', 'string', 'max:40'],
+            'min_score' => ['nullable', 'integer', 'between:0,100'],
+            'sort' => ['nullable', Rule::in(['score', 'recent'])],
+            'per_page' => ['nullable', 'integer', 'between:1,50'],
+        ]);
+
+        $query = $brand->trendRecommendations()->with(['topic.sources']);
+
+        if (! empty($validated['status'])) {
+            $query->where('status', $validated['status']);
+        }
+        if (! empty($validated['classification'])) {
+            $query->where('relevance_classification', $validated['classification']);
+        }
+        if (! empty($validated['platform'])) {
+            $query->where('target_platform', $validated['platform']);
+        }
+        if (! empty($validated['format'])) {
+            $query->where('suggested_format', $validated['format']);
+        }
+        if (isset($validated['min_score'])) {
+            $query->where('score', '>=', $validated['min_score']);
+        }
+
+        match ($validated['sort'] ?? 'score') {
+            'recent' => $query->latest('updated_at'),
+            default => $query->orderByDesc('score')->latest('updated_at'),
+        };
+
+        $recommendations = $query->paginate($validated['per_page'] ?? 20);
+
+        return response()->json([
+            'data' => $recommendations->getCollection()->map(fn (TrendRecommendation $rec): array => $this->recommendationPayload($rec)),
+            'meta' => [
+                'current_page' => $recommendations->currentPage(),
+                'last_page' => $recommendations->lastPage(),
+                'per_page' => $recommendations->perPage(),
+                'total' => $recommendations->total(),
+            ],
+        ]);
+    }
+
+    public function showRecommendation(Request $request, Brand $brand, TrendRecommendation $recommendation)
+    {
+        $this->authorizeBrand($request, $brand);
+        abort_unless($recommendation->brand_id === $brand->id, 404);
+        $recommendation->load(['topic.sources']);
+
+        return response()->json(['data' => $this->recommendationPayload($recommendation)]);
+    }
+
+    public function updateRecommendationStatus(Request $request, Brand $brand, TrendRecommendation $recommendation)
+    {
+        $this->authorizeBrand($request, $brand);
+        abort_unless($recommendation->brand_id === $brand->id, 404);
+        $validated = $request->validate([
+            'status' => ['required', Rule::in(['generated', 'reviewed', 'saved', 'dismissed', 'used'])],
+        ]);
+
+        $recommendation->update(['status' => $validated['status']]);
+
+        return response()->json(['data' => $this->recommendationPayload($recommendation)]);
+    }
+
+    public function recommendationFeedback(Request $request, Brand $brand, TrendRecommendation $recommendation)
+    {
+        $this->authorizeBrand($request, $brand);
+        abort_unless($recommendation->brand_id === $brand->id, 404);
+        $validated = $request->validate([
+            'feedback' => ['required', Rule::in(['relevant', 'not_relevant'])],
+        ]);
+
+        $recommendation->update(['feedback_status' => $validated['feedback']]);
+
+        // Sync feedback to topic
+        if ($recommendation->trend_topic_id) {
+            TrendFeedback::query()->updateOrCreate(
+                ['trend_topic_id' => $recommendation->trend_topic_id, 'user_id' => $request->user()->id],
+                ['feedback_type' => $validated['feedback'] === 'relevant' ? 'relevant' : 'irrelevant'],
+            );
+        }
+
+        return response()->json(['data' => $this->recommendationPayload($recommendation)]);
+    }
+
     private function authorizeBrand(Request $request, Brand $brand): void
     {
         abort_unless($brand->user_id === $request->user()->id, 404, 'Brand not found.');
@@ -280,6 +381,10 @@ class BrandTrendController extends Controller
             'momentum_evidence' => $topic->momentum_evidence,
             'geographic_market' => $topic->geographic_market,
             'opportunity_score' => $topic->opportunity_score,
+            'cluster_id' => $topic->cluster_id,
+            'participating_platforms' => $topic->participating_platforms ?? [],
+            'is_cross_platform' => (bool) $topic->is_cross_platform,
+            'cluster_confidence' => $topic->cluster_confidence,
             'researched_at' => $topic->researched_at,
             'source_count' => $topic->sources->count(),
             'sources' => $topic->sources->map(fn ($source): array => [
@@ -293,6 +398,38 @@ class BrandTrendController extends Controller
                 'metrics' => $source->metrics,
             ]),
             'feedback' => $topic->feedback->first()?->feedback_type,
+            'recommendation' => $topic->relationLoaded('recommendation') && $topic->recommendation
+                ? $this->recommendationPayload($topic->recommendation)
+                : null,
+        ];
+    }
+
+    private function recommendationPayload(TrendRecommendation $rec): array
+    {
+        return [
+            'id' => $rec->id,
+            'brand_id' => $rec->brand_id,
+            'trend_topic_id' => $rec->trend_topic_id,
+            'cluster_id' => $rec->cluster_id,
+            'score' => $rec->score,
+            'relevance_classification' => $rec->relevance_classification,
+            'explanation' => $rec->explanation,
+            'content_package' => $rec->content_package,
+            'target_platform' => $rec->target_platform,
+            'suggested_format' => $rec->suggested_format,
+            'status' => $rec->status,
+            'feedback_status' => $rec->feedback_status,
+            'created_at' => $rec->created_at,
+            'updated_at' => $rec->updated_at,
+            'topic' => $rec->relationLoaded('topic') && $rec->topic ? [
+                'id' => $rec->topic->id,
+                'title' => $rec->topic->title,
+                'category' => $rec->topic->category,
+                'relevance_score' => $rec->topic->relevance_score,
+                'opportunity_score' => $rec->topic->opportunity_score,
+                'momentum' => $rec->topic->momentum,
+                'sources_count' => $rec->topic->relationLoaded('sources') ? $rec->topic->sources->count() : 0,
+            ] : null,
         ];
     }
 }

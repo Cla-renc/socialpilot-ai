@@ -164,19 +164,35 @@ class GoogleTrendsConnector:
 
         return results
 
+    # D4: Google Trends Daily/Realtime RSS always reflects current search interest.
+    # The feed endpoint does not support date-range filtering; the `days` parameter
+    # from the research request cannot be enforced here.  When the caller requests
+    # a window > 1 day, we surface a transparent limitation message in the source
+    # metadata so users are not misled about the temporal coverage of results.
+    _WINDOW_LIMITATION_MSG = (
+        "Google Trends RSS reflects current search interest only. "
+        "The requested research window cannot be applied to this source; "
+        "results always represent today's trending searches."
+    )
+
     async def discover(
         self,
         queries: list[str],
         days: int = 30,
         market: str | None = None,
     ) -> tuple[list[dict[str, Any]], int, list[str]]:
-        del days
+        # days is intentionally not forwarded to the feed URL — the Google Trends
+        # Daily/Realtime RSS endpoint does not accept or honour date-range params.
         geo = self._resolve_geo(market)
         url = f"{self.feed_base_url}?geo={geo}"
+        # Build the limitation note once so it can be injected into result items.
+        window_note: str | None = self._WINDOW_LIMITATION_MSG if days > 1 else None
 
         results: list[dict[str, Any]] = []
         errors: list[str] = []
         successful_requests = 0
+        if window_note:
+            errors.append(window_note)
 
         async with self.client_factory(
             timeout=self.timeout_seconds,

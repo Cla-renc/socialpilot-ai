@@ -57,6 +57,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('brands.trends.feedback');
     Route::put('/brands/{brand}/trend-preferences', [TrendIntelligenceController::class, 'updatePreferences'])
         ->name('brands.trends.preferences');
+    Route::post('/brands/{brand}/recommendations/{recommendation}/status', [TrendIntelligenceController::class, 'updateRecommendationStatus'])
+        ->name('brands.trends.recommendations.status');
+    Route::post('/brands/{brand}/recommendations/{recommendation}/feedback', [TrendIntelligenceController::class, 'recommendationFeedback'])
+        ->name('brands.trends.recommendations.feedback');
 
     // Phase 6 — Content Studio
     Route::get('/brands/{brand}/content', [ContentStudioController::class, 'index'])

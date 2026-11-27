@@ -5,12 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class TrendingTopic extends Model
 {
     protected $fillable = [
         'brand_id',
         'research_job_id',
+        'cluster_id',
         'title',
         'normalized_title',
         'description',
@@ -25,6 +27,9 @@ class TrendingTopic extends Model
         'momentum_evidence',
         'geographic_market',
         'opportunity_score',
+        'participating_platforms',
+        'is_cross_platform',
+        'cluster_confidence',
         'researched_at',
     ];
 
@@ -33,6 +38,9 @@ class TrendingTopic extends Model
         return [
             'relevance_score' => 'integer',
             'opportunity_score' => 'integer',
+            'cluster_confidence' => 'integer',
+            'is_cross_platform' => 'boolean',
+            'participating_platforms' => 'array',
             'researched_at' => 'datetime',
             'content_angles' => 'array',
         ];
@@ -56,5 +64,10 @@ class TrendingTopic extends Model
     public function feedback(): HasMany
     {
         return $this->hasMany(TrendFeedback::class, 'trend_topic_id');
+    }
+
+    public function recommendation(): HasOne
+    {
+        return $this->hasOne(TrendRecommendation::class, 'trend_topic_id');
     }
 }

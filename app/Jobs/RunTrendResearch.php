@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\TrendFeedback;
 use App\Models\TrendingTopic;
+use App\Models\TrendRecommendation;
 use App\Models\TrendResearchJob as TrendResearchRecord;
 use App\Models\TrendSource;
 use App\Models\TrendTopicSource;
@@ -135,6 +136,11 @@ class RunTrendResearch implements ShouldQueue
             'topics.*.momentum_evidence'       => ['nullable', 'string', 'max:5000'],
             'topics.*.geographic_market'       => ['nullable', 'string', 'max:128'],
             'topics.*.opportunity_score'       => ['required', 'integer', 'between:0,100'],
+            'topics.*.cluster_id'              => ['nullable', 'string', 'max:64'],
+            'topics.*.participating_platforms' => ['nullable', 'array'],
+            'topics.*.is_cross_platform'       => ['nullable', 'boolean'],
+            'topics.*.cluster_confidence'      => ['nullable', 'numeric'],
+            'topics.*.recommendation'          => ['nullable', 'array'],
             'topics.*.sources'                 => ['required', 'array', 'min:1'],
             'topics.*.sources.*.source_key'    => ['required', 'string', 'max:80'],
             'topics.*.sources.*.source_name'   => ['required', 'string', 'max:255'],
@@ -153,6 +159,9 @@ class RunTrendResearch implements ShouldQueue
             'result_state'                     => ['nullable', 'string', 'in:success,no_relevant_topics,all_sources_unavailable,configuration_required'],
             'filtered_out_count'               => ['nullable', 'integer', 'min:0'],
             'min_relevance_score'              => ['nullable', 'integer', 'between:0,100'],
+            'clusters'                         => ['nullable', 'array'],
+            'cross_platform_count'             => ['nullable', 'integer', 'min:0'],
+            'recommendations'                  => ['nullable', 'array'],
         ])->validate();
 
         $sourceStatuses   = $validated['sources'];
@@ -231,6 +240,10 @@ class RunTrendResearch implements ShouldQueue
                 [
                     'brand_id'             => $research->brand_id,
                     'title'                => $title,
+                    'cluster_id'           => $topicData['cluster_id'] ?? null,
+                    'participating_platforms' => $topicData['participating_platforms'] ?? null,
+                    'is_cross_platform'    => (bool) ($topicData['is_cross_platform'] ?? false),
+                    'cluster_confidence'   => isset($topicData['cluster_confidence']) ? (int) round($topicData['cluster_confidence'] * 100) : null,
                     'description'          => $topicData['description'] ?? null,
                     'summary'              => $topicData['summary'] ?? null,
                     'content_angles'       => $topicData['content_angles'] ?? [],
@@ -246,6 +259,39 @@ class RunTrendResearch implements ShouldQueue
                     'researched_at'        => now(),
                 ],
             );
+
+            if (! empty($topicData['recommendation'])) {
+                $recData = $topicData['recommendation'];
+                $clusterId = $topicData['cluster_id'] ?? null;
+
+                // Cross-run reconciliation: check if the brand already has a saved or used recommendation
+                // for this cluster or normalized title to preserve user action history
+                $existingPriorStatus = null;
+                if ($clusterId) {
+                    $existingPriorStatus = TrendRecommendation::query()
+                        ->where('brand_id', $research->brand_id)
+                        ->where('cluster_id', $clusterId)
+                        ->whereIn('status', ['saved', 'used', 'dismissed'])
+                        ->value('status');
+                }
+
+                TrendRecommendation::query()->updateOrCreate(
+                    [
+                        'brand_id' => $research->brand_id,
+                        'trend_topic_id' => $topic->id,
+                    ],
+                    [
+                        'cluster_id' => $clusterId,
+                        'score' => $recData['score'] ?? $topic->relevance_score,
+                        'relevance_classification' => $recData['relevance_classification'] ?? 'direct',
+                        'explanation' => $recData['explanation'] ?? [],
+                        'content_package' => $recData['content_package'] ?? [],
+                        'target_platform' => $recData['target_platform'] ?? 'cross_platform',
+                        'suggested_format' => $recData['suggested_format'] ?? 'short_video',
+                        'status' => $existingPriorStatus ?? 'generated',
+                    ],
+                );
+            }
 
             foreach ($topicData['sources'] as $sourceData) {
                 $source = TrendSource::query()->firstOrCreate(

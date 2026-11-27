@@ -978,5 +978,303 @@ class RemediationTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("min_relevance_score", result)
 
 
+# ===========================================================================
+# STAGE 5.6.37 — QUALITY REMEDIATION REGRESSION TESTS (D1, D2, D3, D4, D7)
+# ===========================================================================
+
+class Stage5637QualityRemediationTests(unittest.IsolatedAsyncioTestCase):
+    """Tests covering D1-D7 quality remediation improvements."""
+
+    def _brand(self, **kwargs) -> BrandContext:
+        base = {
+            "id": 1,
+            "industry": "technology",
+            "niche": None,
+            "category": None,
+            "description": None,
+            "audience": None,
+            "region": None,
+            "settings": {"brand_keywords": []},
+        }
+        base.update(kwargs)
+        return BrandContext.from_payload(base)
+
+    # ------------------------------------------------------------------
+    # D1: Brand-category domain expansions (Positive and Negative)
+    # ------------------------------------------------------------------
+
+    def test_d1_fashion_beauty_domain_expansion(self):
+        fashion_brand = self._brand(industry="fashion", niche=None)
+        # Positive: topic with fashion domain tokens (runway, luxury, designer, collection) without literal word "fashion"
+        score_pos, reason_pos = analyze_relevance(
+            fashion_brand,
+            "Runway designer unveils luxury spring collection wardrobe",
+            "Top apparel studios present their latest couture line.",
+            datetime.now(timezone.utc),
+            None,
+        )
+        self.assertGreaterEqual(score_pos, 25, f"Fashion positive should score >= 25, got {score_pos}: {reason_pos}")
+        self.assertIn("contextual domain match", reason_pos)
+
+        # Negative: totally unrelated tech/semiconductor topic
+        score_neg, _ = analyze_relevance(
+            fashion_brand,
+            "Semiconductor foundry expands microchip wafer production",
+            "High tech manufacturing increases silicon wafer output.",
+            datetime.now(timezone.utc),
+            None,
+        )
+        self.assertLess(score_neg, 25, f"Fashion negative should score < 25, got {score_neg}")
+
+        # Beauty positive
+        beauty_brand = self._brand(industry="beauty", niche=None)
+        score_beauty, reason_b = analyze_relevance(
+            beauty_brand,
+            "New skincare serum and moisturiser trend goes viral",
+            "Dermatology experts discuss benefits of hydrating sunscreen formulations.",
+            datetime.now(timezone.utc),
+            None,
+        )
+        self.assertGreaterEqual(score_beauty, 25, f"Beauty positive should score >= 25, got {score_beauty}")
+
+    def test_d1_agriculture_domain_expansion(self):
+        agri_brand = self._brand(industry="agriculture", niche=None)
+        # Positive
+        score_pos, reason_pos = analyze_relevance(
+            agri_brand,
+            "Drought irrigation techniques improve crop harvest yields",
+            "Farming communities adopt sustainable soil management and seed varieties.",
+            datetime.now(timezone.utc),
+            None,
+        )
+        self.assertGreaterEqual(score_pos, 25, f"Agri positive should score >= 25, got {score_pos}: {reason_pos}")
+        self.assertIn("contextual domain match", reason_pos)
+
+        # Negative
+        score_neg, _ = analyze_relevance(
+            agri_brand,
+            "Celebrity pop music star announces stadium tour concert",
+            "Fans rush for album release and broadcast tickets.",
+            datetime.now(timezone.utc),
+            None,
+        )
+        self.assertLess(score_neg, 25, f"Agri negative should score < 25, got {score_neg}")
+
+    def test_d1_construction_domain_expansion(self):
+        construct_brand = self._brand(industry="construction", niche=None)
+        # Positive
+        score_pos, reason_pos = analyze_relevance(
+            construct_brand,
+            "Commercial building contractor deploys low-carbon concrete",
+            "Infrastructure developers embrace innovative architecture and structural engineering.",
+            datetime.now(timezone.utc),
+            None,
+        )
+        self.assertGreaterEqual(score_pos, 25, f"Construction positive should score >= 25, got {score_pos}: {reason_pos}")
+        self.assertIn("contextual domain match", reason_pos)
+
+        # Negative
+        score_neg, _ = analyze_relevance(
+            construct_brand,
+            "Organic skincare and makeup products reviewed by beauty salon",
+            "Cosmetic routine tips for glowing aesthetics.",
+            datetime.now(timezone.utc),
+            None,
+        )
+        self.assertLess(score_neg, 25, f"Construction negative should score < 25, got {score_neg}")
+
+    def test_d1_entertainment_media_domain_expansion(self):
+        ent_brand = self._brand(industry="entertainment", niche=None)
+        # Positive
+        score_pos, reason_pos = analyze_relevance(
+            ent_brand,
+            "Streaming network renews award-winning drama series",
+            "Box office hit film transitions to global television broadcast.",
+            datetime.now(timezone.utc),
+            None,
+        )
+        self.assertGreaterEqual(score_pos, 25, f"Entertainment positive should score >= 25, got {score_pos}: {reason_pos}")
+        self.assertIn("contextual domain match", reason_pos)
+
+        # Negative
+        score_neg, _ = analyze_relevance(
+            ent_brand,
+            "Livestock poultry farmers adopt new grain feeding guidelines",
+            "Rural agriculture cooperative sets seasonal fertiliser standards.",
+            datetime.now(timezone.utc),
+            None,
+        )
+        self.assertLess(score_neg, 25, f"Entertainment negative should score < 25, got {score_neg}")
+
+    def test_d1_nonprofit_domain_expansion(self):
+        nonprofit_brand = self._brand(industry="nonprofit", niche=None)
+        # Positive
+        score_pos, reason_pos = analyze_relevance(
+            nonprofit_brand,
+            "Community charity launches humanitarian fundraising campaign",
+            "Volunteer outreach expands social impact and donation grants for relief.",
+            datetime.now(timezone.utc),
+            None,
+        )
+        self.assertGreaterEqual(score_pos, 25, f"Nonprofit positive should score >= 25, got {score_pos}: {reason_pos}")
+        self.assertIn("contextual domain match", reason_pos)
+
+        # Negative
+        score_neg, _ = analyze_relevance(
+            nonprofit_brand,
+            "Hedge fund investment portfolio shifts to equity market bonds",
+            "Federal bank interest rate hikes influence fintech mortgage liquidity.",
+            datetime.now(timezone.utc),
+            None,
+        )
+        self.assertLess(score_neg, 25, f"Nonprofit negative should score < 25, got {score_neg}")
+
+    # ------------------------------------------------------------------
+    # D2: Geographic scoring correction (no free +5 points for unset region)
+    # ------------------------------------------------------------------
+
+    def test_d2_geographic_scoring_no_bonus_when_region_unset(self):
+        # Brand with no region configured
+        brand_no_region = self._brand(region=None)
+        score_no_region, reason_no_region = analyze_relevance(
+            brand_no_region,
+            "General topic with no geographic ties",
+            "A neutral article about general business practices.",
+            datetime.now(timezone.utc),
+            None,  # requested_market is also None
+        )
+        # Brand with region configured
+        brand_with_region = self._brand(region="Kenya")
+        score_with_region, reason_with_region = analyze_relevance(
+            brand_with_region,
+            "General topic with no geographic ties",
+            "A neutral article about general business practices.",
+            datetime.now(timezone.utc),
+            None,  # requested_market is None, fallback applies only when region is set
+        )
+        # Brand without region must NOT get the +5 fallback bonus that region-configured brands get
+        self.assertEqual(score_with_region - score_no_region, 5)
+        self.assertNotIn("geographic", reason_no_region)
+        self.assertIn("geographic fit is unknown", reason_with_region)
+
+    def test_d2_geographic_scoring_matching_and_nonmatching_markets(self):
+        brand = self._brand(region="Kenya")
+        # Explicit matching market in title/corpus gets +10
+        score_matching, reason_matching = analyze_relevance(
+            brand,
+            "Nairobi startup ecosystem flourishes in Kenya",
+            "Technology hub expansion across East Africa.",
+            datetime.now(timezone.utc),
+            "Kenya",
+        )
+        self.assertIn("explicitly mentions Kenya", reason_matching)
+
+        # Nonmatching market in requested market query
+        score_nonmatching, reason_nonmatching = analyze_relevance(
+            brand,
+            "Nairobi startup ecosystem flourishes in Kenya",
+            "Technology hub expansion across East Africa.",
+            datetime.now(timezone.utc),
+            "Japan",
+        )
+        # Should not get 10 points for Japan because Japan is not in corpus
+        self.assertNotIn("explicitly mentions Japan", reason_nonmatching)
+        self.assertGreater(score_matching, score_nonmatching)
+
+    # ------------------------------------------------------------------
+    # D3: Context-field integration (audience and content_preferences)
+    # ------------------------------------------------------------------
+
+    def test_d3_audience_and_content_preferences_improve_relevance(self):
+        # Brand with audience and content_preferences set
+        brand_with_context = BrandContext.from_payload({
+            "id": 1,
+            "industry": "technology",
+            "audience": "indie software developers",
+            "settings": {
+                "brand_keywords": [],
+                "content_preferences": ["open source tutorials", "cli tools"],
+            },
+        })
+        # Baseline brand without those context fields
+        brand_without_context = BrandContext.from_payload({
+            "id": 2,
+            "industry": "technology",
+            "settings": {"brand_keywords": []},
+        })
+
+        title = "Open source cli tools popular among software developers"
+        summary = "Independent developers share practical tutorials for building tools."
+        now = datetime.now(timezone.utc)
+
+        score_with, reason_with = analyze_relevance(brand_with_context, title, summary, now, None)
+        score_without, _ = analyze_relevance(brand_without_context, title, summary, now, None)
+
+        self.assertGreater(score_with, score_without, f"Context fields should boost score: {score_with} vs {score_without}")
+        self.assertIn("overlaps brand description or category", reason_with)
+
+        # But unrelated topic must remain below threshold (< 25)
+        score_unrelated, _ = analyze_relevance(
+            brand_with_context,
+            "Baking artisan sourdough bread at home",
+            "Kitchen recipes for sourdough fermentation and baking flour.",
+            now,
+            None,
+        )
+        self.assertLess(score_unrelated, 25, "Unrelated topic must remain < 25 even with rich audience context")
+
+    # ------------------------------------------------------------------
+    # D4: Google Trends research-window limitation transparency
+    # ------------------------------------------------------------------
+
+    async def test_d4_google_trends_window_limitation_exposed_when_days_gt_1(self):
+        rss_body = b"""<?xml version="1.0" encoding="UTF-8"?>
+        <rss xmlns:ht="https://trends.google.com/trending/rss" version="2.0">
+        <channel><title>Daily Search Trends</title>
+        <item><title>AI Safety</title><pubDate>Wed, 11 Nov 2026 08:00:00 GMT</pubDate></item>
+        </channel></rss>"""
+
+        connector = GoogleTrendsConnector(
+            client_factory=lambda **kw: httpx.AsyncClient(
+                transport=httpx.MockTransport(lambda r: httpx.Response(200, content=rss_body))
+            ),
+        )
+        # When days > 1 (e.g. days=30), connector must expose the window limitation message
+        items, count, errors = await connector.discover(["ai"], days=30, market="US")
+        self.assertEqual(count, 1)
+        self.assertTrue(any("current search interest only" in err for err in errors))
+
+        # When days == 1, no window limitation note is generated
+        items_1, count_1, errors_1 = await connector.discover(["ai"], days=1, market="US")
+        self.assertEqual(count_1, 1)
+        self.assertFalse(any("current search interest only" in err for err in errors_1))
+
+    # ------------------------------------------------------------------
+    # D7: Source-specific reliability scoring in rank_opportunity
+    # ------------------------------------------------------------------
+
+    def test_d7_source_reliability_scoring_transparent_and_differentiated(self):
+        now = datetime.now(timezone.utc)
+        relevance = 80
+
+        # google_trends (80 reliability) vs unknown provider (60 reliability fallback)
+        opp_google = rank_opportunity(relevance, now, "US", "US", source_key="google_trends")
+        opp_news = rank_opportunity(relevance, now, "US", "US", source_key="news_api")
+        opp_rss = rank_opportunity(relevance, now, "US", "US", source_key="rss")
+        opp_reddit = rank_opportunity(relevance, now, "US", "US", source_key="reddit")
+        opp_unknown = rank_opportunity(relevance, now, "US", "US", source_key="unknown_feed")
+
+        # google_trends (80) > news_api (75) > rss (65) > unknown (60) > reddit (55)
+        self.assertGreater(opp_google, opp_news)
+        self.assertGreater(opp_news, opp_rss)
+        self.assertGreater(opp_rss, opp_unknown)
+        self.assertGreater(opp_unknown, opp_reddit)
+
+        # Fallback unknown provider must be bounded and not crash
+        self.assertIsInstance(opp_unknown, int)
+        self.assertGreaterEqual(opp_unknown, 0)
+        self.assertLessEqual(opp_unknown, 100)
+
+
 if __name__ == "__main__":
     unittest.main()

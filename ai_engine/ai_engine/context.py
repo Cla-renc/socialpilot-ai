@@ -29,6 +29,9 @@ class BrandContext:
     content_preferences: tuple[str, ...]
     positive_feedback: tuple[str, ...]
     negative_feedback: tuple[str, ...]
+    tone: str | None = None
+    brand_voice: str | None = None
+    writing_style: str | None = None
 
     @classmethod
     def from_payload(cls, brand: dict[str, Any]) -> BrandContext:
@@ -58,6 +61,9 @@ class BrandContext:
                 for item in feedback
                 if item.get("feedback") in {"irrelevant", "dismissed"} and item.get("title")
             ),
+            tone=brand.get("tone") or settings.get("brand_voice"),
+            brand_voice=settings.get("brand_voice"),
+            writing_style=settings.get("writing_style"),
         )
 
     def research_terms(self) -> tuple[str, ...]:

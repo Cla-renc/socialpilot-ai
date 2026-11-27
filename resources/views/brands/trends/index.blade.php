@@ -143,6 +143,12 @@
         <article class="card panel">
             <h2>Source status</h2>
             @foreach ($sources as $source)
+                @php
+                    $latestSourceStatus = collect($lastResearch?->source_status ?? [])->firstWhere('source_key', $source['key']);
+                    $limitationMessage = !empty($latestSourceStatus['message'])
+                        ? $latestSourceStatus['message']
+                        : null;
+                @endphp
                 <div class="line-item">
                     <div>
                         <strong>{{ $source['name'] }}</strong>
@@ -157,6 +163,11 @@
                         </div>
                         @if ($source['last_error'])
                             <div class="muted">{{ $source['last_error'] }}</div>
+                        @endif
+                        @if ($limitationMessage)
+                            <div class="muted" style="margin-top:0.25rem;">
+                                <strong>Notice:</strong> {{ $limitationMessage }}
+                            </div>
                         @endif
                     </div>
                     <span class="badge {{ $source['connection_status'] === 'ready' ? 'badge--active' : 'badge--pending' }}">{{ \Illuminate\Support\Str::headline($source['connection_status']) }}</span>
@@ -219,6 +230,71 @@
             <button class="button-secondary" type="submit">Save schedule</button>
         </form>
     </section>
+
+    @if (isset($recommendations) && $recommendations->isNotEmpty())
+        <section style="margin-top:1.5rem;" aria-label="Brand Content Recommendations">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+                <div>
+                    <h2>AI Brand Content Recommendations</h2>
+                    <p class="muted">Actionable content ideas tailored to {{ $brand->name }}'s niche, tone, and audience.</p>
+                </div>
+                <span class="badge badge--active">{{ $recommendations->count() }} Tailored</span>
+            </div>
+            <div class="content-grid" style="grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem;">
+                @foreach ($recommendations as $rec)
+                    <article class="card panel" style="display:flex;flex-direction:column;justify-content:space-between;">
+                        <div>
+                            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin-bottom:0.5rem;">
+                                <span class="badge badge--{{ $rec->relevance_classification === 'direct' ? 'active' : 'pending' }}">
+                                    {{ \Illuminate\Support\Str::headline($rec->relevance_classification) }} · {{ $rec->score }}%
+                                </span>
+                                <span class="badge badge--pending">{{ \Illuminate\Support\Str::headline($rec->suggested_format) }}</span>
+                            </div>
+                            <h3 style="font-size:1.1rem;margin:0.25rem 0 0.5rem;">{{ $rec->topic?->title }}</h3>
+                            <div style="background:#f8fafc;padding:0.75rem;border-radius:6px;margin:0.5rem 0;font-size:0.9rem;">
+                                <strong>Recommended Angle:</strong>
+                                <p style="margin:0.25rem 0 0;">{{ $rec->content_package['recommended_angle'] ?? '' }}</p>
+                            </div>
+                            @if (!empty($rec->content_package['alternative_hooks']))
+                                <details style="margin:0.5rem 0;font-size:0.85rem;">
+                                    <summary style="cursor:pointer;font-weight:600;color:#4f46e5;">3 Alternative Hooks</summary>
+                                    <ul style="margin:0.4rem 0 0;padding-left:1.2rem;">
+                                        @foreach ($rec->content_package['alternative_hooks'] as $hook)
+                                            <li style="margin-bottom:0.25rem;">{{ $hook }}</li>
+                                        @endforeach
+                                    </ul>
+                                </details>
+                            @endif
+                            @if (!empty($rec->explanation['why_it_matters']))
+                                <p class="muted" style="font-size:0.85rem;margin:0.5rem 0 0;">
+                                    <strong>Why it matters:</strong> {{ $rec->explanation['why_it_matters'] }}
+                                </p>
+                            @endif
+                        </div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;margin-top:1rem;padding-top:0.75rem;border-top:1px solid #e2e8f0;">
+                            <span class="muted" style="font-size:0.8rem;">Status: {{ \Illuminate\Support\Str::headline($rec->status) }}</span>
+                            <div style="display:flex;gap:0.4rem;">
+                                @if ($rec->status !== 'saved')
+                                    <form method="POST" action="{{ route('brands.trends.recommendations.status', [$brand, $rec]) }}">
+                                        @csrf
+                                        <input type="hidden" name="status" value="saved">
+                                        <button class="button-secondary" type="submit" style="font-size:0.8rem;padding:0.25rem 0.5rem;">Save</button>
+                                    </form>
+                                @endif
+                                @if ($rec->status !== 'dismissed')
+                                    <form method="POST" action="{{ route('brands.trends.recommendations.status', [$brand, $rec]) }}">
+                                        @csrf
+                                        <input type="hidden" name="status" value="dismissed">
+                                        <button class="button-secondary" type="submit" style="font-size:0.8rem;padding:0.25rem 0.5rem;color:#ef4444;">Dismiss</button>
+                                    </form>
+                                @endif
+                            </div>
+                        </div>
+                    </article>
+                @endforeach
+            </div>
+        </section>
+    @endif
 
     <section style="margin-top:1rem;">
         <h2>Brand-relevant topics</h2>

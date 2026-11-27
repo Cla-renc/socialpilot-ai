@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Brand;
 use App\Models\BrandTrendPreference;
 use App\Models\TrendFeedback;
+use App\Models\TrendRecommendation;
 use App\Models\TrendingTopic;
 use App\Services\TrendResearchService;
 use App\Services\TrendSourceRegistry;
@@ -82,6 +83,12 @@ class TrendIntelligenceController extends Controller
             'sources' => $this->sources->all(),
             'preference' => $brand->trendPreference()->first(),
             'sourceStatuses' => $this->sources->all(),
+            'recommendations' => $brand->trendRecommendations()
+                ->with(['topic.sources'])
+                ->whereIn('status', ['generated', 'reviewed', 'saved'])
+                ->orderByDesc('score')
+                ->limit(10)
+                ->get(),
             'metrics' => [
                 'topics' => $brand->trendingTopics()->count(),
                 'high_relevance' => $brand->trendingTopics()->where('relevance_score', '>=', 75)->count(),
@@ -144,6 +151,39 @@ class TrendIntelligenceController extends Controller
             $validated['feedback'] === 'dismissed' ? 'brands.trends.index' : 'brands.trends.show',
             $validated['feedback'] === 'dismissed' ? $brand : [$brand, $topic],
         )->with('success', 'Trend feedback saved.');
+    }
+
+    public function updateRecommendationStatus(Request $request, Brand $brand, TrendRecommendation $recommendation): RedirectResponse
+    {
+        $this->authorizeBrand($request, $brand);
+        abort_unless($recommendation->brand_id === $brand->id, 404);
+        $validated = $request->validate([
+            'status' => ['required', Rule::in(['generated', 'reviewed', 'saved', 'dismissed', 'used'])],
+        ]);
+
+        $recommendation->update(['status' => $validated['status']]);
+
+        return redirect()->route('brands.trends.index', $brand)->with('success', 'Recommendation status updated.');
+    }
+
+    public function recommendationFeedback(Request $request, Brand $brand, TrendRecommendation $recommendation): RedirectResponse
+    {
+        $this->authorizeBrand($request, $brand);
+        abort_unless($recommendation->brand_id === $brand->id, 404);
+        $validated = $request->validate([
+            'feedback' => ['required', Rule::in(['relevant', 'not_relevant'])],
+        ]);
+
+        $recommendation->update(['feedback_status' => $validated['feedback']]);
+
+        if ($recommendation->trend_topic_id) {
+            TrendFeedback::query()->updateOrCreate(
+                ['trend_topic_id' => $recommendation->trend_topic_id, 'user_id' => $request->user()->id],
+                ['feedback_type' => $validated['feedback'] === 'relevant' ? 'relevant' : 'irrelevant'],
+            );
+        }
+
+        return redirect()->route('brands.trends.index', $brand)->with('success', 'Recommendation feedback recorded.');
     }
 
     public function updatePreferences(Request $request, Brand $brand): RedirectResponse

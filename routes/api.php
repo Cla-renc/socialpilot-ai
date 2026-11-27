@@ -150,6 +150,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/brands/{brand}/trends/{topic}/feedback', [BrandTrendController::class, 'feedback']);
         Route::get('/brands/{brand}/trend-preferences', [BrandTrendController::class, 'preferences']);
         Route::put('/brands/{brand}/trend-preferences', [BrandTrendController::class, 'updatePreferences']);
+        Route::get('/brands/{brand}/recommendations', [BrandTrendController::class, 'recommendations']);
+        Route::get('/brands/{brand}/recommendations/{recommendation}', [BrandTrendController::class, 'showRecommendation']);
+        Route::post('/brands/{brand}/recommendations/{recommendation}/status', [BrandTrendController::class, 'updateRecommendationStatus']);
+        Route::post('/brands/{brand}/recommendations/{recommendation}/feedback', [BrandTrendController::class, 'recommendationFeedback']);
 
         Route::get('/brands/{brand}/members', [BrandMemberController::class, 'index']);
         Route::post('/brands/{brand}/members', [BrandMemberController::class, 'store']);

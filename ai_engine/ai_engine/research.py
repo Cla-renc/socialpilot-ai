@@ -6,15 +6,22 @@ from typing import Any
 
 import httpx
 
+from .clustering import TrendClusteringEngine
 from .context import BrandContext, generate_queries
 from .duplicate_detection import duplicate_index, normalize_title
 from .momentum import calculate_momentum
 from .ollama import OllamaAngleGenerator
+from .recommendation_engine import TrendRecommendationEngine
 from .scoring import analyze_relevance, rank_opportunity, relevance_tier, tokens
+from .source_registry import SourceRegistry
+from .sources.facebook import FacebookConnector
 from .sources.google_trends import GoogleTrendsConnector
+from .sources.instagram import InstagramConnector
 from .sources.news_api import NewsApiConnector
 from .sources.reddit import RedditConnector
 from .sources.rss import RssConnector, validate_feed_url
+from .sources.tiktok import TikTokConnector
+from .sources.x import XConnector
 from .sources.youtube import YouTubeConnector
 
 _DEFAULT_MIN_RELEVANCE = 25
@@ -28,7 +35,13 @@ class ResearchOrchestrator:
         reddit: RedditConnector | None = None,
         youtube: YouTubeConnector | None = None,
         google_trends: GoogleTrendsConnector | None = None,
+        instagram: InstagramConnector | None = None,
+        tiktok: TikTokConnector | None = None,
+        facebook: FacebookConnector | None = None,
+        x: XConnector | None = None,
         angle_generator: OllamaAngleGenerator | None = None,
+        source_registry: SourceRegistry | None = None,
+        recommendation_engine: TrendRecommendationEngine | None = None,
     ) -> None:
         # Default RSS connector uses env var; will be overridden per-request if
         # the Laravel payload supplies rss_feeds in filters.
@@ -43,7 +56,15 @@ class ResearchOrchestrator:
         self.reddit = reddit or RedditConnector()
         self.youtube = youtube or YouTubeConnector()
         self.google_trends = google_trends or GoogleTrendsConnector()
+        self.instagram = instagram or InstagramConnector()
+        self.tiktok = tiktok or TikTokConnector()
+        self.facebook = facebook or FacebookConnector()
+        self.x = x or XConnector()
         self.angle_generator = angle_generator or OllamaAngleGenerator()
+        self.source_registry = source_registry or SourceRegistry()
+        self.recommendation_engine = recommendation_engine or TrendRecommendationEngine(
+            angle_generator=self.angle_generator
+        )
 
     def _get_connector(self, key: str, request_rss_feeds: list[str] | None = None) -> Any:
         if key == "rss":
@@ -56,6 +77,10 @@ class ResearchOrchestrator:
             "reddit": self.reddit,
             "youtube": self.youtube,
             "google_trends": self.google_trends,
+            "instagram": self.instagram,
+            "tiktok": self.tiktok,
+            "facebook": self.facebook,
+            "x": self.x,
         }
         return connectors.get(key)
 
@@ -120,12 +145,18 @@ class ResearchOrchestrator:
             # Check general provider configuration
             is_configured = getattr(connector, "is_configured", True)
             if not is_configured:
+                descriptor = self.source_registry.get(source_key)
                 source_name = getattr(connector, "source_name", source_key)
+                limitation_msg = (
+                    descriptor.limitation_message
+                    if descriptor and descriptor.limitation_message
+                    else f"{source_name} is awaiting credentials or configuration."
+                )
                 source_status.append({
                     "source_key": source_key,
                     "source_name": source_name,
                     "status": "configuration_required",
-                    "message": f"{source_name} is awaiting credentials or configuration.",
+                    "message": limitation_msg,
                     "result_count": 0,
                 })
                 continue
@@ -173,18 +204,9 @@ class ResearchOrchestrator:
                     "result_count": 0,
                 })
 
-        # Group near-duplicate article titles into topics
-        topic_groups: dict[str, dict[str, Any]] = {}
-        for article in articles:
-            matched = duplicate_index(article["title"], topic_groups)
-            if matched is None:
-                normalized = normalize_title(article["title"])
-                topic_groups[normalized] = {
-                    "title": article["title"],
-                    "articles": [article],
-                }
-            else:
-                topic_groups[matched]["articles"].append(article)
+        # Cluster articles across platforms into cohesive topic clusters
+        clustering_engine = TrendClusteringEngine()
+        clusters = clustering_engine.cluster_articles(articles)
 
         # Historical observations for momentum calculation
         historical_observations = (
@@ -198,15 +220,15 @@ class ResearchOrchestrator:
         filtered_out_count = 0
         filtered_out_reasons: list[str] = []
 
-        for group in topic_groups.values():
-            evidence_items = group["articles"]
+        for cluster in clusters:
+            evidence_items = cluster.evidence_items
             primary = evidence_items[0]
-            summary_text = next(
+            summary_text = cluster.summary or next(
                 (item["summary"] for item in evidence_items if item.get("summary")),
                 None,
             )
 
-            category = self._category(group["title"], context)
+            category = self._category(cluster.cluster_title, context)
             if requested_categories and category not in requested_categories:
                 filtered_out_count += 1
                 filtered_out_reasons.append(f"category mismatch: '{category}' not in {sorted(requested_categories)}")
@@ -214,7 +236,7 @@ class ResearchOrchestrator:
 
             relevance, explanation = analyze_relevance(
                 context,
-                group["title"],
+                cluster.cluster_title,
                 summary_text or "",
                 primary.get("published_at"),
                 requested_market,
@@ -224,24 +246,29 @@ class ResearchOrchestrator:
                 primary.get("published_at"),
                 requested_market,
                 requested_market if requested_market and requested_market.casefold() in
-                f"{group['title']} {summary_text or ''}".casefold() else None,
+                f"{cluster.cluster_title} {summary_text or ''}".casefold() else None,
+                source_key=primary.get("source_key", ""),
             )
+            if cluster.is_cross_platform:
+                opportunity = min(100, int(round(opportunity * cluster.cross_platform_weight)))
 
             # Apply configurable relevance threshold (replaces the old binary gate)
             if relevance < min_relevance:
                 filtered_out_count += 1
                 filtered_out_reasons.append(
-                    f"'{group['title']}' scored {relevance} < threshold {min_relevance}: {explanation}"
+                    f"'{cluster.cluster_title}' scored {relevance} < threshold {min_relevance}: {explanation}"
                 )
                 continue
 
             # Momentum calculation
             momentum, momentum_evidence = calculate_momentum(
-                title=group["title"],
+                title=cluster.cluster_title,
                 current_researched_at=now_dt,
                 current_sources=evidence_items,
                 historical_observations=historical_observations,
             )
+            if cluster.is_cross_platform and cluster.clustering_rationale:
+                momentum_evidence = f"{momentum_evidence} ({cluster.clustering_rationale})"
 
             angles = []
             angle_error = None
@@ -252,7 +279,7 @@ class ResearchOrchestrator:
             else:
                 try:
                     angles = await self.angle_generator.suggest(
-                        group["title"],
+                        cluster.cluster_title,
                         [item.get("evidence") or item["title"] for item in evidence_items],
                         context.niche or context.industry,
                     )
@@ -262,7 +289,7 @@ class ResearchOrchestrator:
                     angle_error = "Optional Ollama angle generation failed; sourced research is still available."
 
             topics.append({
-                "title": group["title"][:255],
+                "title": cluster.cluster_title[:255],
                 "description": summary_text,
                 "summary": summary_text,
                 "category": category,
@@ -276,12 +303,18 @@ class ResearchOrchestrator:
                 "momentum_evidence": momentum_evidence,
                 "geographic_market": requested_market,
                 "opportunity_score": opportunity,
+                "cluster_id": cluster.cluster_id,
+                "participating_platforms": cluster.participating_platforms,
+                "platform_count": len(cluster.participating_platforms),
+                "is_cross_platform": cluster.is_cross_platform,
+                "cluster_confidence": cluster.cluster_confidence,
                 "sources": [
                     {
                         **item,
                         "published_at": (
                             item["published_at"].isoformat()
-                            if item.get("published_at") else None
+                            if isinstance(item.get("published_at"), datetime)
+                            else (item["published_at"] if item.get("published_at") else None)
                         ),
                     }
                     for item in evidence_items
@@ -292,6 +325,20 @@ class ResearchOrchestrator:
             key=lambda item: (item["opportunity_score"], item["relevance_score"]),
             reverse=True,
         )
+
+        recommendations = []
+        for topic in topics:
+            rec = self.recommendation_engine.evaluate_and_recommend(
+                context=context,
+                topic=topic,
+                historical_topics=payload.get("brand", {}).get("historical_topics"),
+            )
+            if rec is not None:
+                rec_dict = rec.to_dict()
+                topic["recommendation"] = rec_dict
+                recommendations.append(rec_dict)
+            else:
+                topic["recommendation"] = None
 
         # Determine result_state
         any_successful = any(
@@ -318,6 +365,9 @@ class ResearchOrchestrator:
 
         return {
             "topics": topics[:100],
+            "recommendations": recommendations,
+            "clusters": [c.to_dict() for c in clusters],
+            "cross_platform_count": sum(1 for c in clusters if c.is_cross_platform),
             "sources": source_status,
             "queries": queries,
             "result_state": result_state,

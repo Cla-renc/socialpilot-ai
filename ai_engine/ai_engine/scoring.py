@@ -70,6 +70,48 @@ _DOMAIN_EXPANSION: dict[str, frozenset[str]] = {
         "hiking", "trail", "camping", "gear", "outdoor", "backpack", "tent",
         "mountain", "climb", "adventure", "nature", "park", "wilderness",
     }),
+    # D1 — New domain expansions added in Stage 5.6.37
+    "fashion": frozenset({
+        "fashion", "style", "trend", "clothing", "apparel", "outfit", "dress",
+        "wear", "collection", "designer", "luxury", "streetwear", "wardrobe",
+        "textile", "couture", "runway", "accessories", "jewellery", "jewelry",
+        "handbag", "sneaker", "footwear",
+    }),
+    "beauty": frozenset({
+        "beauty", "skincare", "makeup", "cosmetic", "moisturiser", "moisturizer",
+        "serum", "foundation", "lipstick", "haircare", "salon", "spa", "grooming",
+        "fragrance", "perfume", "sunscreen", "cleanser", "aesthetic", "glow",
+        "wellness", "dermatology",
+    }),
+    "agriculture": frozenset({
+        "farm", "farming", "crop", "harvest", "soil", "irrigation", "livestock",
+        "agriculture", "agri", "agritech", "fertilizer", "pesticide", "drought",
+        "seed", "grain", "dairy", "poultry", "fishery", "food security",
+        "organic farming", "greenhouse", "rural",
+    }),
+    "construction": frozenset({
+        "construction", "build", "building", "infrastructure", "contractor",
+        "concrete", "steel", "architecture", "architect", "planning", "permit",
+        "renovation", "refurbishment", "housing", "development", "project",
+        "engineering", "safety", "scaffold", "site", "material",
+    }),
+    "entertainment": frozenset({
+        "film", "movie", "music", "streaming", "netflix", "spotify", "gaming",
+        "game", "esport", "celebrity", "concert", "tour", "album", "release",
+        "box office", "broadcast", "podcast", "content", "media", "tv", "show",
+        "series", "award", "festival",
+    }),
+    "media": frozenset({
+        "news", "journalism", "press", "broadcast", "editorial", "publisher",
+        "magazine", "newspaper", "reporter", "media", "streaming", "podcast",
+        "content", "audience", "readership", "digital media", "social media",
+    }),
+    "nonprofit": frozenset({
+        "charity", "nonprofit", "ngo", "volunteer", "donation", "fundraise",
+        "fundraising", "community", "social impact", "welfare", "advocacy",
+        "humanitarian", "grant", "cause", "awareness", "campaign", "outreach",
+        "beneficiary", "mission", "sustainability",
+    }),
 }
 
 
@@ -132,8 +174,7 @@ def analyze_relevance(
     if domain_terms:
         matched_domain = [t for t in domain_terms if t.casefold() in corpus]
         if matched_domain:
-            contribution = 20 if len(matched_domain) == len(domain_terms) else 15
-            score += contribution
+            score += 20
             reasons.append(f"matches brand industry or niche: {', '.join(matched_domain)}")
 
     # 3. Domain semantic expansion (up to 35 pts) — contextual breadth
@@ -154,7 +195,17 @@ def analyze_relevance(
                 reasons.append(f"contextual domain match via {context.industry or context.category} terms: {', '.join(top)}")
 
     # 4. Brand description / category signal (up to 10 pts)
-    desc_tokens = tokens(f"{context.description or ''} {context.category or ''}")
+    # D3: Include content_preferences and audience tokens here so that
+    # broad_context_terms() fields actually influence relevance scoring.
+    # Tokens are merged with description/category to avoid a separate scoring
+    # pass that could double-count keywords already captured in Factor 1 or 5.
+    desc_signal_parts = [
+        context.description or "",
+        context.category or "",
+        context.audience or "",
+        " ".join(context.content_preferences),
+    ]
+    desc_tokens = tokens(" ".join(desc_signal_parts))
     if desc_tokens:
         overlap = corpus_tokens & desc_tokens
         if overlap:
@@ -172,6 +223,9 @@ def analyze_relevance(
             reasons.append(f"overlaps audience interests: {', '.join(matched_interests)}")
 
     # 6. Geographic market (up to 10 pts)
+    # D2: Award geographic bonus ONLY when actual region information is present and matches.
+    # No bonus is given when both geographic_market and context.region are absent —
+    # awarding points for a missing region inflates scores artificially.
     if geographic_market:
         if geographic_market.casefold() in corpus:
             score += 10
@@ -179,9 +233,6 @@ def analyze_relevance(
     elif context.region:
         score += 5
         reasons.append("geographic fit is unknown; no regional match was assumed")
-    else:
-        score += 5
-        reasons.append("geographic evidence is unavailable")
 
     # 7. Freshness (up to 5 pts)
     if published_at:
@@ -225,8 +276,41 @@ def rank_opportunity(
     published_at: datetime | None,
     geographic_market: str | None,
     observed_market: str | None,
-    source_reliability: int = 65,
+    source_key: str = "",
 ) -> int:
+    """Calculate opportunity score (0–100).
+
+    Weights: relevance 45%, timeliness 25%, source reliability 20%, geography 10%.
+
+    source_key is used to look up a per-provider reliability score instead of
+    using a universal constant.  Reliability reflects the editorial authority and
+    data quality of the source, not the factual accuracy of individual topics.
+    It does NOT imply that any source guarantees accurate information.
+
+    Per-provider reliability rationale (D7):
+    - google_trends (80): Official Google search-interest data; high authority,
+      reflects genuine public search volume, but covers search curiosity, not
+      editorial verification.
+    - bbc, news_api (75): Established editorial standards; professionally fact-
+      checked; slightly lower than search interest because editorial lag applies.
+    - rss (65): Generic RSS feeds; quality varies by publisher; conservative default.
+    - reddit (55): Community-submitted content; relevant but not editorially
+      verified; high engagement but lower reliability ceiling.
+    - youtube (60): Creator-produced video content; broad reach but editorial
+      standards vary significantly by channel.
+    - fallback (60): Unknown/unlisted providers; conservative floor to prevent
+      arbitrary opportunity inflation.
+    """
+    # D7: Per-source reliability lookup (replaces universal hardcoded 65)
+    _SOURCE_RELIABILITY: dict[str, int] = {
+        "google_trends": 80,
+        "news_api": 75,
+        "rss": 65,
+        "youtube": 60,
+        "reddit": 55,
+    }
+    source_reliability = _SOURCE_RELIABILITY.get(source_key.strip().casefold(), 60)
+
     if published_at is None:
         timeliness = 40
     else:
